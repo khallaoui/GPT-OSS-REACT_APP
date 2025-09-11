@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -54,7 +55,8 @@ export function ChatInterface() {
       addGoal(args);
       toast({ title: "Goal Set!", description: `You're on your way to achieving "${args.title}".` });
     }
-    return `Tool ${name} executed successfully.`;
+    // Return a simple string indicating success for the AI to process
+    return `Tool ${name} executed successfully with arguments: ${JSON.stringify(args)}. Acknowledge this and confirm to the user.`;
   };
 
 
@@ -63,51 +65,67 @@ export function ChatInterface() {
     if (!userMessageContent.trim() || isLoading) return;
   
     const newUserMessage: ChatMessage = { role: 'user', content: userMessageContent };
-    const currentMessages: ChatMessage[] = [...messages, newUserMessage];
-    setMessages(currentMessages);
+    setMessages(prev => [...prev, newUserMessage]);
     setInput('');
     setIsLoading(true);
   
+    // Maintain a history for the current conversation turn
+    let currentTurnHistory: ChatMessage[] = [...messages, newUserMessage];
+  
     try {
-      const result = await getPersonalizedAdvice({
+      // First call to the AI
+      const initialResult = await getPersonalizedAdvice({
         userInput: userMessageContent,
         chatHistory: messages.slice(-5).map(m => ({role: m.role as any, content: m.content, tool_calls: (m as any).tool_calls, tool_call_id: (m as any).tool_call_id }))
       });
   
-      let choice = result.response;
-      if (!choice || !choice.message) {
+      const firstChoice = initialResult.response;
+      if (!firstChoice || !firstChoice.message) {
         throw new Error("Invalid response structure from AI.");
       }
       
-      let assistantMessage = choice.message;
-      // Add the initial assistant message (which might contain tool calls) to the history
-      let updatedMessages = [...currentMessages, { role: 'assistant', content: assistantMessage.content || '', tool_calls: assistantMessage.tool_calls }];
-      setMessages(updatedMessages);
-  
-      // Check for tool calls and handle them
-      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-        const toolCall = assistantMessage.tool_calls[0]; // Assuming one tool call at a time for simplicity
-        const toolResultContent = handleToolCall(toolCall);
-        
-        const toolResponseMessage: ChatMessage = {
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          content: toolResultContent
-        };
-        
-        // Add the tool response message to history before the next AI call
-        const messagesForNextCall = [...updatedMessages, toolResponseMessage];
-        setMessages(messagesForNextCall);
+      const assistantMessage = firstChoice.message;
+      const assistantResponse: ChatMessage = { 
+        role: 'assistant', 
+        content: assistantMessage.content || '',
+        tool_calls: assistantMessage.tool_calls
+      };
 
-        // Send the tool result back to the AI to get a final text response
+      currentTurnHistory.push(assistantResponse);
+      setMessages(currentTurnHistory);
+
+      // Handle tool calls if they exist
+      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+        const toolResults: ChatMessage[] = [];
+
+        // Execute tools and collect results
+        for (const toolCall of assistantMessage.tool_calls) {
+          const toolResultContent = handleToolCall(toolCall);
+          toolResults.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: toolResultContent,
+          });
+        }
+        
+        // Add tool responses to history for the next AI call
+        currentTurnHistory.push(...toolResults);
+        setMessages(currentTurnHistory);
+        
+        // Second call to the AI with the tool results
         const finalResult = await getPersonalizedAdvice({
-            userInput: '', // No new user input
-            chatHistory: messagesForNextCall.slice(-6).map(m => ({role: m.role as any, content: m.content, tool_calls: (m as any).tool_calls, tool_call_id: (m as any).tool_call_id }))
+            userInput: '', // No new user input needed
+            chatHistory: currentTurnHistory.slice(-6).map(m => ({
+              role: m.role as any, 
+              content: m.content, 
+              tool_calls: (m as any).tool_calls, 
+              tool_call_id: m.tool_call_id 
+            }))
         });
 
         const finalChoice = finalResult.response;
         if (finalChoice && finalChoice.message && finalChoice.message.content) {
-            const finalAssistantMessage = { role: 'assistant', content: finalChoice.message.content };
+            const finalAssistantMessage: ChatMessage = { role: 'assistant', content: finalChoice.message.content };
             setMessages(prev => [...prev, finalAssistantMessage]);
         }
       }
@@ -115,10 +133,11 @@ export function ChatInterface() {
     } catch (error) {
       console.error('Error getting response:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      setMessages(prev => [...prev, {
+      const errorResponse: ChatMessage = {
         role: 'assistant',
         content: `Sorry, I encountered an error: ${errorMessage}`
-      }]);
+      };
+      setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsLoading(false);
     }

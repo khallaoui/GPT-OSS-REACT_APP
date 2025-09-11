@@ -15,6 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { PlusCircle, Flame, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { improveHabitMethods } from '@/app/actions';
+import type { Habit } from '@/lib/types';
 
 
 export function HabitTracker() {
@@ -72,7 +73,7 @@ export function HabitTracker() {
                             className="w-6 h-6 mt-1"
                           />
                           <div className="flex-1">
-                            <Label htmlFor={`habit-${habit.id}`} className="text-lg font-semibold leading-tight">{habit.name}</Label>
+                            <Label htmlFor={`habit-${habit.id}`} className="text-lg font-semibold leading-tight">{habit.title}</Label>
                             <p className="text-sm text-muted-foreground mt-1">{habit.description}</p>
                           </div>
                         </div>
@@ -81,7 +82,7 @@ export function HabitTracker() {
                                 <Flame className={`w-4 h-4 ${habit.streak > 0 ? 'text-amber-500' : ''}`} />
                                 <span>{habit.streak} day streak</span>
                             </div>
-                           <Button variant="ghost" size="sm" onClick={() => getAIHabitSuggestion(habit.name, habit.description)}>
+                           <Button variant="ghost" size="sm" onClick={() => getAIHabitSuggestion(habit.title, habit.description || '')}>
                                 Improve with AI
                             </Button>
                         </div>
@@ -109,27 +110,29 @@ export function HabitTracker() {
 
 function AddHabitDialog({ addHabit }: { addHabit: (habit: any) => void }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
+  const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
+  const [frequency, setFrequency] = useState<Habit['frequency']>('daily');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !category) {
-      toast({ variant: "destructive", title: "Missing fields", description: "Please provide a name and category." });
+    if (!title || !category) {
+      toast({ variant: "destructive", title: "Missing fields", description: "Please provide a title and category." });
       return;
     }
-    addHabit({ name, category, description });
-    toast({ title: "Habit Added!", description: `"${name}" is now on your list.` });
-    setName('');
+    addHabit({ title, category, description, frequency });
+    toast({ title: "Habit Added!", description: `"${title}" is now on your list.` });
+    setTitle('');
     setCategory('');
     setDescription('');
+    setFrequency('daily');
     setOpen(false);
   };
   
   const handleSuggestionClick = (suggestion: string) => {
-    setName(suggestion);
+    setTitle(suggestion);
   }
 
   return (
@@ -172,12 +175,26 @@ function AddHabitDialog({ addHabit }: { addHabit: (habit: any) => void }) {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="name">Habit Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Meditate for 10 minutes" />
+              <Label htmlFor="name">Habit Title</Label>
+              <Input id="name" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Meditate for 10 minutes" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description (Your Method)</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g., Using the Calm app right after waking up." />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="frequency">Frequency</Label>
+              <Select onValueChange={(value) => setFrequency(value as Habit['frequency'])} value={frequency}>
+                <SelectTrigger id="frequency">
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                   <SelectItem value="one-time">One-time</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

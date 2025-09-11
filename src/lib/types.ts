@@ -2,10 +2,15 @@ import type { LucideIcon } from 'lucide-react';
 
 export interface Habit {
   id: string;
+  title: string;
+  description?: string;
+  type: 'habit';
+  frequency: 'daily' | 'weekly' | 'monthly' | 'one-time';
+  progress: number;
+  createdAt: string;
+  // Fields from the old structure, kept for compatibility with existing components but can be phased out.
   name: string;
   category: string;
-  description: string;
-  created_date: string;
   completed: boolean;
   streak: number;
 }

@@ -1,155 +1,107 @@
 'use server';
 /**
- * @fileOverview AI-powered personalized advice flow for morning and evening routines.
- *
- * - getPersonalizedAdvice - A function that generates personalized routine suggestions.
- * - PersonalizedAdviceInput - The input type for the getPersonalizedAdvice function.
- * - PersonalizedAdviceOutput - The return type for the getPersonalizedAdvice function.
+ * @fileOverview AI-powered personalized advice flow.
+ * This file implements the "habit assistant" persona as requested by the user.
  */
 import { z } from 'zod';
-import { habitCategories } from '@/lib/data';
-import type { Habit, Goal } from '@/lib/types';
+import type { Habit } from '@/lib/types';
 
-const habitCategoryKeys = habitCategories.map(c => c.key) as [string, ...string[]];
-
-// Define Zod schemas for the tools. This helps with type safety.
-const addHabitSchema = z.object({
-  name: z.string().describe('The name or title of the habit.'),
-  description: z.string().describe('A brief description of how the user plans to perform the habit.').optional(),
-  category: z.enum(habitCategoryKeys).describe('The category for the habit.'),
+// The new, user-specified habit object format.
+const HabitSchema = z.object({
+  id: z.string().describe("a unique id"),
+  title: z.string().describe("short descriptive title"),
+  description: z.string().describe("optional longer description").optional(),
+  type: z.literal("habit"),
+  frequency: z.enum(["daily", "weekly", "monthly", "one-time"]).describe("infer from text or default to 'daily'"),
+  progress: z.literal(0),
+  createdAt: z.string().describe("ISO timestamp"),
 });
-export type AddHabitArgs = z.infer<typeof addHabitSchema>;
 
-const addGoalSchema = z.object({
-  title: z.string().describe('The title of the goal.'),
-  timeline: z.string().describe("The user's desired timeline for achieving the goal (e.g., '3 months', '1 year')."),
+// A schema for the tool that the AI will use.
+const createHabitToolSchema = z.object({
+  habits: z.array(HabitSchema)
 });
-export type AddGoalArgs = z.infer<typeof addGoalSchema>;
 
-
-// Tool definitions for the AI model
-const tools = [
-  {
-    type: 'function',
-    function: {
-      name: 'addHabit',
-      description: 'Creates a new habit for the user.',
-      parameters: {
-        type: 'object',
-        properties: addHabitSchema.shape,
-        required: ['name', 'category'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'addGoal',
-      description: 'Creates a new goal for the user.',
-      parameters: {
-        type: 'object',
-        properties: addGoalSchema.shape,
-        required: ['title', 'timeline'],
-      },
-    },
-  },
-];
-
-
+// The input for the main flow, which is just the user's text.
 const PersonalizedAdviceInputSchema = z.object({
-  userInput: z.string().describe('The user input describing their needs and goals for morning/evening routines.'),
-  chatHistory: z.array(z.object({
-    role: z.enum(['user', 'assistant', 'system', 'tool']).describe('The role of the message sender'),
-    content: z.string().describe('The content of the message'),
-    tool_calls: z.any().optional(),
-    tool_call_id: z.string().optional(),
-  })).optional().describe('The chat history of the conversation.'),
+  userInput: z.string(),
+  existingHabits: z.array(HabitSchema), // Pass existing habits for context.
 });
 export type PersonalizedAdviceInput = z.infer<typeof PersonalizedAdviceInputSchema>;
 
 
+// The final output returned to the client.
 export type PersonalizedAdviceOutput = {
-  responseMessage: {
-    role: 'assistant';
-    content: string | null;
-  };
-  createdHabit?: Omit<Habit, 'id' | 'created_date' | 'completed' | 'streak'>;
-  createdGoal?: Omit<Goal, 'id' | 'progress'>;
+  updatedHabits: Habit[];
 };
 
 
-async function callOpenRouter(messages: any[]) {
+export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Promise<PersonalizedAdviceOutput> {
+  // Construct the prompt following the user's rules.
+  const systemPrompt = `You are my habit assistant.
+Whenever I give you a text describing a habit, create a new JavaScript object for that habit and add it to my list of habits.
+
+The object format must be:
+{
+  id: "unique_id",          // generate a unique id
+  title: "short title",     // short descriptive title
+  description: "optional longer description",
+  type: "habit",
+  frequency: "daily | weekly | monthly | one-time", // infer from text or default to "daily"
+  progress: 0,
+  createdAt: "ISO timestamp"
+}
+
+Rules:
+1. Only return the updated array of habits (with the new habit included).
+2. Do not explain or add extra text.
+3. Always append the new habit to the existing list.
+
+This is the existing list of habits:
+${JSON.stringify(input.existingHabits, null, 2)}
+`;
+
+  try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "HTTP-Referer": "https://gpt-life.app",
+        "X-Title": "GPT-Life AI Coach",
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",
-        messages,
-        tools: tools,
-        tool_choice: 'auto',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: input.userInput }
+        ],
+        response_format: { type: "json_object" },
       }),
     });
+
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
+
     const data = await response.json();
-    return data.choices[0];
-}
+    const responseContent = JSON.parse(data.choices[0].message.content);
 
+    // Validate the response against the Zod schema.
+    const parsed = createHabitToolSchema.safeParse(responseContent);
 
-export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Promise<PersonalizedAdviceOutput> {
-  const messages = [
-    {
-      role: 'system',
-      content: `You are GPT-Life, an AI personality coach helping users build better habits and develop their personality.
-Give practical, actionable advice in a motivational tone.
-If the user asks to create a habit or set a goal, use the provided tools to do so.
-Infer the category for habits based on the user's request.
-Acknowledge that the habit or goal has been created after using a tool. Do not ask for confirmation.`
-    },
-    ...(input.chatHistory || []).map(m => ({ role: m.role, content: m.content, tool_calls: m.tool_calls, tool_call_id: m.tool_call_id })),
-    { role: 'user', content: input.userInput }
-  ];
-
-  try {
-    const choice = await callOpenRouter(messages);
-    const assistantMessage = choice.message;
-
-    let createdHabit: AddHabitArgs | undefined;
-    let createdGoal: AddGoalArgs | undefined;
-
-    if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-      const toolCall = assistantMessage.tool_calls[0]; // Assuming one tool call per turn for simplicity
-      const functionName = toolCall.function.name;
-      const args = JSON.parse(toolCall.function.arguments);
-
-      let confirmationText = '';
-
-      if (functionName === 'addHabit') {
-        createdHabit = args;
-        confirmationText = `I've added the new habit "${args.name}" for you. Keep up the great work!`;
-      } else if (functionName === 'addGoal') {
-        createdGoal = args;
-        confirmationText = `Your new goal "${args.title}" has been set. Let's work towards it!`;
-      }
-      
-      // Return the created data and a simple confirmation message.
-      return {
-        responseMessage: { role: 'assistant', content: confirmationText },
-        createdHabit,
-        createdGoal,
-      }
+    if (!parsed.success) {
+      console.error("Invalid format from AI:", parsed.error);
+      // Return existing habits if AI response is invalid
+      return { updatedHabits: input.existingHabits };
     }
 
-    // If no tool was called, just return the AI's text response.
-    return { responseMessage: assistantMessage };
+    return { updatedHabits: parsed.data.habits };
 
   } catch (error) {
-    console.error("Error fetching from OpenRouter:", error);
-    return { responseMessage: { role: 'assistant', content: "Oops! Something went wrong. Please check your API key and try again later." }};
+    console.error("Error calling OpenRouter:", error);
+    // On error, return the original list of habits without changes.
+    return { updatedHabits: input.existingHabits };
   }
 }

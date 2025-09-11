@@ -1,9 +1,8 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
 import { getPersonalizedAdvice } from '@/app/actions';
-import type { ChatMessage } from '@/lib/types';
+import type { ChatMessage, Habit } from '@/lib/types';
 import { chatExamples } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +20,7 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const { addHabit, addGoal } = useAppContext();
+  const { habits: existingHabits, addHabit, addGoal } = useAppContext();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,35 +43,27 @@ export function ChatInterface() {
     setIsLoading(true);
 
     try {
+      // The AI will now directly return the updated list of habits.
       const result = await getPersonalizedAdvice({
         userInput: userMessageContent,
-        chatHistory: messages.slice(-5).map(m => ({
-            role: m.role as any,
-            content: m.content,
-            tool_calls: m.tool_calls,
-            tool_call_id: m.tool_call_id,
-        }))
+        existingHabits: (existingHabits as any),
       });
+
+      const { updatedHabits } = result;
       
-      const { responseMessage, createdHabit, createdGoal } = result;
+      const newHabit = updatedHabits.find(h => !existingHabits.some(eh => eh.id === h.id));
 
-      if (createdHabit) {
-        addHabit(createdHabit);
-        toast({ title: "Habit Added!", description: `"${createdHabit.name}" is now on your list.` });
+      if (newHabit) {
+        // Here we can call our context's addHabit, but since the AI is the source of truth,
+        // it might be better to have a `setHabits` in the context. For now, we add the single new habit.
+        addHabit(newHabit as any);
+        toast({ title: "Habit Added!", description: `"${newHabit.title}" is now on your list.` });
+         setMessages(prev => [...prev, {role: 'assistant', content: `I've added the new habit "${newHabit.title}" for you.`}]);
+      } else {
+        // If no new habit was detected, maybe the AI responded with text (though it shouldn't based on new rules)
+        setMessages(prev => [...prev, {role: 'assistant', content: "I wasn't able to add a new habit from that. Please try rephrasing."}]);
       }
 
-      if (createdGoal) {
-        addGoal(createdGoal);
-        toast({ title: "Goal Set!", description: `You're on your way to achieving "${createdGoal.title}".` });
-      }
-
-      if (responseMessage && responseMessage.content) {
-        const assistantResponse: ChatMessage = {
-          role: 'assistant',
-          content: responseMessage.content,
-        };
-        setMessages(prev => [...prev, assistantResponse]);
-      }
 
     } catch (error) {
       console.error('Error getting response:', error);
@@ -140,7 +131,7 @@ export function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask for advice, or 'add a habit to...' "
+            placeholder="Describe a habit you want to start..."
             disabled={isLoading}
             className="flex-1"
           />

@@ -21,12 +21,8 @@ export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Pro
   } catch (error) {
     console.error("Error in getPersonalizedAdvice:", error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-    return { 
-        responseMessage: { 
-            role: 'assistant',
-            content: `I'm sorry, but I encountered an error while generating advice: ${errorMessage}`
-        } 
-    };
+    // On error, return the existing habits
+    return { updatedHabits: input.existingHabits };
   }
 }
 

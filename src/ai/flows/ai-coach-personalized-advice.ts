@@ -41,7 +41,7 @@ export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Pro
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`
       },
       body: JSON.stringify({
-        model: "openrouter/cinematika-7b:free", // "openai/gpt-oss-20b:free" seems to be unavailable, using a free alternative
+        model: "google/gemma-7b-it:free",
         messages: messages,
         max_tokens: 300,
         temperature: 0.7

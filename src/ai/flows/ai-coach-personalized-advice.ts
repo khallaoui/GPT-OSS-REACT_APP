@@ -127,27 +127,25 @@ Acknowledge that the habit or goal has been created after using a tool. Do not a
       const functionName = toolCall.function.name;
       const args = JSON.parse(toolCall.function.arguments);
 
+      let confirmationText = '';
+
       if (functionName === 'addHabit') {
         createdHabit = args;
+        confirmationText = `I've added the new habit "${args.name}" for you. Keep up the great work!`;
       } else if (functionName === 'addGoal') {
         createdGoal = args;
+        confirmationText = `Your new goal "${args.title}" has been set. Let's work towards it!`;
       }
       
-      const toolResponseMessage = {
-        role: 'tool',
-        tool_call_id: toolCall.id,
-        content: `Tool ${functionName} executed successfully with arguments: ${JSON.stringify(args)}. Acknowledge this and confirm to the user.`
-      };
-
-      const finalChoice = await callOpenRouter([...messages, assistantMessage, toolResponseMessage]);
-
+      // Return the created data and a simple confirmation message.
       return {
-        responseMessage: finalChoice.message,
+        responseMessage: { role: 'assistant', content: confirmationText },
         createdHabit,
         createdGoal,
       }
     }
 
+    // If no tool was called, just return the AI's text response.
     return { responseMessage: assistantMessage };
 
   } catch (error) {

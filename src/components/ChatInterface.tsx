@@ -49,6 +49,8 @@ export function ChatInterface() {
         chatHistory: messages.slice(-5).map(m => ({
             role: m.role as any,
             content: m.content,
+            tool_calls: m.tool_calls,
+            tool_call_id: m.tool_call_id,
         }))
       });
       

@@ -38,8 +38,7 @@ export function ChatInterface() {
     if (!userMessageContent.trim() || isLoading) return;
 
     const newUserMessage: ChatMessage = { role: 'user', content: userMessageContent };
-    const currentMessages = [...messages, newUserMessage];
-    setMessages(currentMessages);
+    setMessages(prev => [...prev, newUserMessage]);
     setInput('');
     setIsLoading(true);
 
@@ -66,12 +65,19 @@ export function ChatInterface() {
         toast({ title: "Goal Set!", description: `You're on your way to achieving "${createdGoal.title}".` });
       }
 
-      if (responseMessage.content) {
+      if (responseMessage && responseMessage.content) {
         const assistantResponse: ChatMessage = {
           role: 'assistant',
           content: responseMessage.content,
         };
         setMessages(prev => [...prev, assistantResponse]);
+      } else if (!responseMessage.content && (createdHabit || createdGoal)) {
+        // If there's no content but a tool was called, add a generic confirmation.
+        const confirmationMessage = createdHabit 
+            ? `I've added the habit "${createdHabit.name}" for you.`
+            : `I've set the goal "${createdGoal?.title}" for you.`;
+        
+        setMessages(prev => [...prev, { role: 'assistant', content: confirmationMessage }]);
       }
 
     } catch (error) {

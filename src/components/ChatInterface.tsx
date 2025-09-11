@@ -63,13 +63,13 @@ export function ChatInterface() {
     if (!userMessageContent.trim() || isLoading) return;
   
     const newUserMessage: ChatMessage = { role: 'user', content: userMessageContent };
-    let currentMessages: ChatMessage[] = [...messages, newUserMessage];
+    const currentMessages: ChatMessage[] = [...messages, newUserMessage];
     setMessages(currentMessages);
     setInput('');
     setIsLoading(true);
   
     try {
-      let result = await getPersonalizedAdvice({
+      const result = await getPersonalizedAdvice({
         userInput: userMessageContent,
         chatHistory: messages.slice(-5).map(m => ({role: m.role as any, content: m.content, tool_calls: (m as any).tool_calls, tool_call_id: (m as any).tool_call_id }))
       });
@@ -80,8 +80,9 @@ export function ChatInterface() {
       }
       
       let assistantMessage = choice.message;
-      currentMessages = [...currentMessages, { role: 'assistant', content: assistantMessage.content || '', tool_calls: assistantMessage.tool_calls }];
-      setMessages(currentMessages);
+      // Add the initial assistant message (which might contain tool calls) to the history
+      let updatedMessages = [...currentMessages, { role: 'assistant', content: assistantMessage.content || '', tool_calls: assistantMessage.tool_calls }];
+      setMessages(updatedMessages);
   
       // Check for tool calls and handle them
       if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
@@ -94,13 +95,14 @@ export function ChatInterface() {
           content: toolResultContent
         };
         
-        currentMessages = [...currentMessages, toolResponseMessage];
-        setMessages(currentMessages);
+        // Add the tool response message to history before the next AI call
+        const messagesForNextCall = [...updatedMessages, toolResponseMessage];
+        setMessages(messagesForNextCall);
 
         // Send the tool result back to the AI to get a final text response
         const finalResult = await getPersonalizedAdvice({
             userInput: '', // No new user input
-            chatHistory: currentMessages.slice(-6).map(m => ({role: m.role as any, content: m.content, tool_calls: (m as any).tool_calls, tool_call_id: (m as any).tool_call_id }))
+            chatHistory: messagesForNextCall.slice(-6).map(m => ({role: m.role as any, content: m.content, tool_calls: (m as any).tool_calls, tool_call_id: (m as any).tool_call_id }))
         });
 
         const finalChoice = finalResult.response;

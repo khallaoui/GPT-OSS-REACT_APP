@@ -1,12 +1,11 @@
 'use server';
 /**
- * @fileOverview AI-powered personalized advice flow.
- * This file implements the "habit assistant" persona as requested by the user.
+ * @fileOverview AI-powered habit creation flow based on user's explicit instructions.
  */
 import { z } from 'zod';
 import type { Habit } from '@/lib/types';
 
-// The new, user-specified habit object format.
+// The user-specified habit object format.
 const HabitSchema = z.object({
   id: z.string().describe("a unique id"),
   title: z.string().describe("short descriptive title"),
@@ -17,15 +16,15 @@ const HabitSchema = z.object({
   createdAt: z.string().describe("ISO timestamp"),
 });
 
-// A schema for the tool that the AI will use.
-const createHabitToolSchema = z.object({
+// A schema for the expected AI response.
+const AIResponseSchema = z.object({
   habits: z.array(HabitSchema)
 });
 
-// The input for the main flow, which is just the user's text.
+// The input for the flow.
 const PersonalizedAdviceInputSchema = z.object({
   userInput: z.string(),
-  existingHabits: z.array(HabitSchema), // Pass existing habits for context.
+  existingHabits: z.array(HabitSchema),
 });
 export type PersonalizedAdviceInput = z.infer<typeof PersonalizedAdviceInputSchema>;
 
@@ -39,22 +38,20 @@ export type PersonalizedAdviceOutput = {
 export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Promise<PersonalizedAdviceOutput> {
   // Construct the prompt following the user's rules.
   const systemPrompt = `You are my habit assistant.
-Whenever I give you a text describing a habit, create a new JavaScript object for that habit and add it to my list of habits.
+When I describe a new habit or goal in plain text, create a new habit object for it and add it to my list.
 
-The object format must be:
-{
-  id: "unique_id",          // generate a unique id
-  title: "short title",     // short descriptive title
-  description: "optional longer description",
-  type: "habit",
-  frequency: "daily | weekly | monthly | one-time", // infer from text or default to "daily"
-  progress: 0,
-  createdAt: "ISO timestamp"
-}
+The object must include:
+- id (unique id)
+- title (short descriptive name)
+- description (optional longer description)
+- type (always "habit")
+- frequency (daily | weekly | monthly | one-time, infer from my text or default to daily)
+- progress (always start at 0)
+- createdAt (current timestamp in ISO format)
 
 Rules:
-1. Only return the updated array of habits (with the new habit included).
-2. Do not explain or add extra text.
+1. Always return a JSON object with a single key "habits" which is an array of all habits including the new one.
+2. Do not explain, just return the JSON object.
 3. Always append the new habit to the existing list.
 
 This is the existing list of habits:
@@ -67,8 +64,6 @@ ${JSON.stringify(input.existingHabits, null, 2)}
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "HTTP-Referer": "https://gpt-life.app",
-        "X-Title": "GPT-Life AI Coach",
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",
@@ -82,14 +77,16 @@ ${JSON.stringify(input.existingHabits, null, 2)}
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorText}`);
+      console.error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorText}`);
+      // On error, return the original list of habits.
+      return { updatedHabits: input.existingHabits };
     }
 
     const data = await response.json();
     const responseContent = JSON.parse(data.choices[0].message.content);
 
     // Validate the response against the Zod schema.
-    const parsed = createHabitToolSchema.safeParse(responseContent);
+    const parsed = AIResponseSchema.safeParse(responseContent);
 
     if (!parsed.success) {
       console.error("Invalid format from AI:", parsed.error);

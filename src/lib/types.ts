@@ -8,11 +8,10 @@ export interface Habit {
   frequency: 'daily' | 'weekly' | 'monthly' | 'one-time';
   progress: number;
   createdAt: string;
-  // Fields from the old structure, kept for compatibility with existing components but can be phased out.
-  name: string;
-  category: string;
-  completed: boolean;
-  streak: number;
+  // Kept for compatibility with existing components but can be phased out.
+  category?: string;
+  completed?: boolean;
+  streak?: number;
 }
 
 export interface Goal {

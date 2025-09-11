@@ -34,12 +34,6 @@ export function Dashboard() {
     { name: 'Pending', value: 100 - completionRate, fill: 'hsl(var(--muted))' },
   ];
 
-  const habitProgressData = habits.map(habit => ({
-    name: habit.name.substring(0, 3) + '..',
-    streak: habit.streak,
-  }));
-
-
   return (
     <div className="flex flex-col h-full p-4 space-y-6 bg-card/50">
       <div className="flex items-center gap-4">

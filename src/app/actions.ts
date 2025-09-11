@@ -20,7 +20,6 @@ export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Pro
     return result;
   } catch (error) {
     console.error("Error in getPersonalizedAdvice:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
     // On error, return the existing habits
     return { updatedHabits: input.existingHabits };
   }

@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getPersonalizedAdvice } from '@/app/actions';
 import type { ChatMessage, Habit } from '@/lib/types';
-import { chatExamples } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,7 +19,7 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const { habits: existingHabits, addHabit, addGoal } = useAppContext();
+  const { habits: existingHabits, setHabits } = useAppContext();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -37,33 +36,31 @@ export function ChatInterface() {
     if (!userMessageContent.trim() || isLoading) return;
 
     const newUserMessage: ChatMessage = { role: 'user', content: userMessageContent };
-    const currentMessages = [...messages, newUserMessage];
-    setMessages(currentMessages);
+    setMessages(prev => [...prev, newUserMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-      // The AI will now directly return the updated list of habits.
       const result = await getPersonalizedAdvice({
         userInput: userMessageContent,
         existingHabits: (existingHabits as any),
       });
 
       const { updatedHabits } = result;
+      const oldHabitCount = existingHabits.length;
+      const newHabitCount = updatedHabits.length;
       
-      const newHabit = updatedHabits.find(h => !existingHabits.some(eh => eh.id === h.id));
+      // Update the habits list in the context
+      setHabits(updatedHabits);
 
-      if (newHabit) {
-        // Here we can call our context's addHabit, but since the AI is the source of truth,
-        // it might be better to have a `setHabits` in the context. For now, we add the single new habit.
-        addHabit(newHabit as any);
+      let assistantMessage = "I've updated your habits.";
+      if (newHabitCount > oldHabitCount) {
+        const newHabit = updatedHabits[updatedHabits.length - 1];
+        assistantMessage = `I've added the new habit "${newHabit.title}" for you.`;
         toast({ title: "Habit Added!", description: `"${newHabit.title}" is now on your list.` });
-         setMessages(prev => [...prev, {role: 'assistant', content: `I've added the new habit "${newHabit.title}" for you.`}]);
-      } else {
-        // If no new habit was detected, maybe the AI responded with text (though it shouldn't based on new rules)
-        setMessages(prev => [...prev, {role: 'assistant', content: "I wasn't able to add a new habit from that. Please try rephrasing."}]);
       }
 
+      setMessages(prev => [...prev, {role: 'assistant', content: assistantMessage}]);
 
     } catch (error) {
       console.error('Error getting response:', error);
@@ -85,8 +82,8 @@ export function ChatInterface() {
           {messages.length === 0 && (
             <div className="text-center p-8 rounded-lg">
                 <Sparkles className="mx-auto h-12 w-12 text-primary" />
-                <h2 className="mt-4 text-2xl font-bold font-headline">Your AI Personality Coach</h2>
-                <p className="mt-2 text-muted-foreground">What would you like to work on today?</p>
+                <h2 className="mt-4 text-2xl font-bold font-headline">Your AI Habit Assistant</h2>
+                <p className="mt-2 text-muted-foreground">Describe a habit you want to start.</p>
             </div>
           )}
           {messages.map((msg, index) => (
@@ -131,7 +128,7 @@ export function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Describe a habit you want to start..."
+            placeholder="e.g., I want to run 3 times a week."
             disabled={isLoading}
             className="flex-1"
           />
@@ -140,18 +137,15 @@ export function ChatInterface() {
           </Button>
         </div>
         <div className="flex flex-wrap gap-2 mt-3">
-          {chatExamples.slice(0, 3).map((example, index) => (
-            <Button
-              key={index}
-              onClick={() => handleSend(example)}
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              disabled={isLoading}
-            >
-              {example}
+            <Button onClick={() => handleSend("Go for a 20-minute walk every morning.")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
+              "Walk 20min every morning"
             </Button>
-          ))}
+            <Button onClick={() => handleSend("Read one chapter of a book before bed.")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
+              "Read a chapter before bed"
+            </Button>
+             <Button onClick={() => handleSend("Stop using my phone 1 hour before sleep.")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
+              "No phone before sleep"
+            </Button>
         </div>
       </div>
     </div>

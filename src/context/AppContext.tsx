@@ -6,6 +6,7 @@ import type { Habit, Goal } from '@/lib/types';
 interface AppContextType {
   habits: Habit[];
   goals: Goal[];
+  setHabits: (habits: Habit[]) => void;
   addHabit: (habit: Omit<Habit, 'id' | 'createdAt' | 'progress' | 'type'>) => void;
   toggleHabit: (habitId: string) => void;
   addGoal: (goal: Omit<Goal, 'id' | 'progress'>) => void;
@@ -19,10 +20,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // Initial dummy data
 const initialHabits: Habit[] = [
-  { id: '1', name: '15 minutes of meditation', title: '15 minutes of meditation', category: 'morning', description: 'Using a guided meditation app.', created_date: new Date().toISOString(), completed: true, streak: 5, type: 'habit', frequency: 'daily', progress: 0, createdAt: new Date().toISOString() },
-  { id: '2', name: '30 minutes of daily exercise', title: '30 minutes of daily exercise', category: 'health', description: 'A mix of cardio and strength training.', created_date: new Date().toISOString(), completed: false, streak: 2, type: 'habit', frequency: 'daily', progress: 0, createdAt: new Date().toISOString() },
-  { id: '3', name: 'Read 20 pages daily', title: 'Read 20 pages daily', category: 'learning', description: 'Reading a non-fiction book.', created_date: new Date().toISOString(), completed: true, streak: 12, type: 'habit', frequency: 'daily', progress: 0, createdAt: new Date().toISOString() },
-  { id: '4', name: 'Digital detox 1 hour before bed', title: 'Digital detox 1 hour before bed', category: 'evening', description: 'No screens before sleeping.', created_date: new Date().toISOString(), completed: false, streak: 0, type: 'habit', frequency: 'daily', progress: 0, createdAt: new Date().toISOString() },
+  { id: '1', title: '15 minutes of meditation', category: 'morning', description: 'Using a guided meditation app.', completed: true, streak: 5, type: 'habit', frequency: 'daily', progress: 0, createdAt: new Date().toISOString() },
+  { id: '2', title: '30 minutes of daily exercise', category: 'health', description: 'A mix of cardio and strength training.', completed: false, streak: 2, type: 'habit', frequency: 'daily', progress: 0, createdAt: new Date().toISOString() },
+  { id: '3', title: 'Read 20 pages daily', category: 'learning', description: 'Reading a non-fiction book.', completed: true, streak: 12, type: 'habit', frequency: 'daily', progress: 0, createdAt: new Date().toISOString() },
+  { id: '4', title: 'Digital detox 1 hour before bed', category: 'evening', description: 'No screens before sleeping.', completed: false, streak: 0, type: 'habit', frequency: 'daily', progress: 0, createdAt: new Date().toISOString() },
 ];
 
 const initialGoals: Goal[] = [
@@ -32,10 +33,21 @@ const initialGoals: Goal[] = [
 ];
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [habits, setHabits] = useState<Habit[]>(initialHabits);
+  const [habits, setHabitsState] = useState<Habit[]>(initialHabits);
   const [goals, setGoals] = useState<Goal[]>(initialGoals);
 
-  const addHabit = (habitData: Omit<Habit, 'id' | 'createdAt' | 'progress' | 'type' | 'completed' | 'streak' | 'name' | 'created_date' | 'category' > & { category: string }) => {
+  const setHabits = (newHabits: Habit[]) => {
+    // Add compatibility properties if they are missing
+    const compatibleHabits = newHabits.map(h => ({
+      ...h,
+      category: h.category || 'learning', // default category
+      completed: h.completed || false,
+      streak: h.streak || 0,
+    }));
+    setHabitsState(compatibleHabits);
+  }
+
+  const addHabit = (habitData: Omit<Habit, 'id' | 'createdAt' | 'progress' | 'type' | 'completed' | 'streak'> & { category: string }) => {
     const newHabit: Habit = {
       ...habitData,
       id: crypto.randomUUID(),
@@ -44,18 +56,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       progress: 0,
       completed: false,
       streak: 0,
-      name: habitData.title, // for compatibility
-      created_date: new Date().toISOString(), // for compatibility
     };
-    setHabits(prev => [...prev, newHabit]);
+    setHabitsState(prev => [...prev, newHabit]);
   };
 
   const toggleHabit = (habitId: string) => {
-    setHabits(prev => prev.map(h => {
+    setHabitsState(prev => prev.map(h => {
       if (h.id === habitId) {
         const wasCompleted = h.completed;
         const newCompleted = !wasCompleted;
-        let newStreak = h.streak;
+        let newStreak = h.streak || 0;
         
         if (newCompleted) {
           newStreak += 1;
@@ -96,13 +106,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const getLongestStreak = () => {
     if (habits.length === 0) return 0;
-    return Math.max(...habits.map(h => h.streak), 0);
+    return Math.max(...habits.map(h => h.streak || 0), 0);
   };
 
 
   const value = {
     habits,
     goals,
+    setHabits,
     addHabit,
     toggleHabit,
     addGoal,

@@ -6,81 +6,105 @@
  * - PersonalizedAdviceInput - The input type for the getPersonalizedAdvice function.
  * - PersonalizedAdviceOutput - The return type for the getPersonalizedAdvice function.
  */
-
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from 'zod';
 import { habitCategories } from '@/lib/data';
 
 const habitCategoryKeys = habitCategories.map(c => c.key) as [string, ...string[]];
 
-export const addHabitTool = ai.defineTool(
-  {
-    name: 'addHabit',
-    description: 'Creates a new habit for the user.',
-    inputSchema: z.object({
-      name: z.string().describe('The name or title of the habit.'),
-      description: z.string().describe('A brief description of how the user plans to perform the habit.').optional(),
-      category: z.enum(habitCategoryKeys).describe('The category for the habit.'),
-    }),
-    outputSchema: z.string(),
-  },
-  async (habit) => {
-    // In a real app, this would add the habit to a database.
-    // For now, we'll just confirm it was "added".
-    return `Habit "${habit.name}" has been added under the ${habit.category} category.`;
-  }
-);
+// Define Zod schemas for the tools. This helps with type safety.
+const addHabitSchema = z.object({
+  name: z.string().describe('The name or title of the habit.'),
+  description: z.string().describe('A brief description of how the user plans to perform the habit.').optional(),
+  category: z.enum(habitCategoryKeys).describe('The category for the habit.'),
+});
 
-export const addGoalTool = ai.defineTool(
+const addGoalSchema = z.object({
+  title: z.string().describe('The title of the goal.'),
+  timeline: z.string().describe("The user's desired timeline for achieving the goal (e.g., '3 months', '1 year')."),
+});
+
+// Tool definitions for the AI model
+const tools = [
   {
-    name: 'addGoal',
-    description: 'Creates a new goal for the user.',
-    inputSchema: z.object({
-      title: z.string().describe('The title of the goal.'),
-      timeline: z.string().describe("The user's desired timeline for achieving the goal (e.g., '3 months', '1 year')."),
-    }),
-    outputSchema: z.string(),
+    type: 'function',
+    function: {
+      name: 'addHabit',
+      description: 'Creates a new habit for the user.',
+      parameters: {
+        type: 'object',
+        properties: addHabitSchema.shape,
+        required: ['name', 'category'],
+      },
+    },
   },
-  async (goal) => {
-    return `Goal "${goal.title}" with a timeline of ${goal.timeline} has been set.`;
-  }
-);
+  {
+    type: 'function',
+    function: {
+      name: 'addGoal',
+      description: 'Creates a new goal for the user.',
+      parameters: {
+        type: 'object',
+        properties: addGoalSchema.shape,
+        required: ['title', 'timeline'],
+      },
+    },
+  },
+];
 
 
 const PersonalizedAdviceInputSchema = z.object({
   userInput: z.string().describe('The user input describing their needs and goals for morning/evening routines.'),
   chatHistory: z.array(z.object({
-    role: z.enum(['user', 'model', 'system', 'tool']).describe('The role of the message sender'),
+    role: z.enum(['user', 'assistant', 'system']).describe('The role of the message sender'),
     content: z.string().describe('The content of the message'),
   })).optional().describe('The chat history of the conversation.'),
 });
 export type PersonalizedAdviceInput = z.infer<typeof PersonalizedAdviceInputSchema>;
 
-const PersonalizedAdviceOutputSchema = z.object({
-   response: z.any().describe('Personalized advice or tool call result.'),
-});
-export type PersonalizedAdviceOutput = z.infer<typeof PersonalizedAdviceOutputSchema>;
+
+// The 'any' type is used here to accommodate the varied structure of tool calls and text responses from the API.
+export type PersonalizedAdviceOutput = {
+  response: any;
+};
 
 export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Promise<PersonalizedAdviceOutput> {
-  const history = (input.chatHistory || []).map((msg: any) => ({
-      role: msg.role,
-      content: [{ text: msg.content }],
-    }));
-
-  const { response } = await ai.generate({
-    model: 'googleai/gemini-1.5-flash',
-    tools: [addHabitTool, addGoalTool],
-    prompt: input.userInput,
-    history,
-    config: {
-      toolChoice: 'auto'
-    },
-    system: `You are GPT-Life, an AI personality coach helping users build better habits and develop their personality.
+  const messages = [
+    {
+      role: 'system',
+      content: `You are GPT-Life, an AI personality coach helping users build better habits and develop their personality.
 Give practical, actionable advice in a motivational tone.
 If the user asks to create a habit or set a goal, use the provided tools to do so.
 Infer the category for habits based on the user's request.
 Acknowledge that the habit or goal has been created after using a tool.`
-  });
-  
-  return { response: response };
+    },
+    ...(input.chatHistory || []).map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: input.userInput }
+  ];
+
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-4o-mini",
+        messages,
+        tools: tools,
+        tool_choice: 'auto',
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return { response: data.choices[0] };
+  } catch (error) {
+    console.error("Error fetching from OpenRouter:", error);
+    return { response: { message: { content: "Oops! Something went wrong. Please check your API key and try again later." }}};
+  }
 }

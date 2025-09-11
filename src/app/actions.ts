@@ -20,7 +20,7 @@ export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Pro
     return result;
   } catch (error) {
     console.error("Error in getPersonalizedAdvice:", error);
-    return { response: "I'm sorry, but I encountered an error while generating advice. Please try again later."};
+    return { response: { message: { content: "I'm sorry, but I encountered an error while generating advice. Please try again later." } } };
   }
 }
 

@@ -13,8 +13,16 @@ import { AppLogo } from '@/components/icons';
 import ReactMarkdown from 'react-markdown';
 import { useAppContext } from '@/context/AppContext';
 import { useToast } from '@/hooks/use-toast';
-import { Part, GenerationResponse, isToolRequest, isToolResponse } from 'genkit';
 
+// Type for the tool call object from the API response
+type ToolCall = {
+  id: string;
+  function: {
+    name: string;
+    arguments: string;
+  };
+  type: 'function';
+};
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -34,16 +42,18 @@ export function ChatInterface() {
     }
   }, [messages]);
 
-  const handleToolCall = (toolRequest: Part) => {
-      const toolData = toolRequest.toolRequest;
-      console.log('Tool call:', toolData.name, toolData.input);
-      if (toolData.name === 'addHabit') {
-        addHabit(toolData.input);
-        toast({ title: "Habit Added!", description: `"${toolData.input.name}" is now on your list.` });
-      } else if (toolData.name === 'addGoal') {
-        addGoal(toolData.input);
-        toast({ title: "Goal Set!", description: `You're on your way to achieving "${toolData.input.title}".` });
-      }
+  const handleToolCall = (toolCall: ToolCall) => {
+    const { name, arguments: argsString } = toolCall.function;
+    const args = JSON.parse(argsString);
+    console.log('Tool call:', name, args);
+
+    if (name === 'addHabit') {
+      addHabit(args);
+      toast({ title: "Habit Added!", description: `"${args.name}" is now on your list.` });
+    } else if (name === 'addGoal') {
+      addGoal(args);
+      toast({ title: "Goal Set!", description: `You're on your way to achieving "${args.title}".` });
+    }
   };
 
 
@@ -63,34 +73,32 @@ export function ChatInterface() {
         chatHistory: newMessages.slice(-5).map(m => ({role: m.role as any, content: m.content}))
       });
 
-      const response = result.response as GenerationResponse;
-      const responseContent = response.content;
+      const choice = result.response;
+      if (!choice || !choice.message) {
+         throw new Error("Invalid response structure from AI.");
+      }
 
-      if(responseContent) {
-        let textResponse = '';
-        responseContent.forEach(part => {
-          if (part.text) {
-            textResponse += part.text;
-          }
-          if (isToolRequest(part)) {
-            handleToolCall(part);
-          }
-          if(isToolResponse(part)){
-            // You might want to display tool responses differently
-            console.log('Tool response:', part.toolResponse);
-          }
-        });
-        
-        if (textResponse) {
-          setMessages(prev => [...prev, { role: 'assistant', content: textResponse }]);
-        }
+      const { content, tool_calls } = choice.message;
+
+      // Handle tool calls if they exist
+      if (tool_calls && tool_calls.length > 0) {
+        tool_calls.forEach(handleToolCall);
+      }
+      
+      // Add the assistant's text response to the chat
+      if (content) {
+         setMessages(prev => [...prev, { role: 'assistant', content }]);
+      } else if (tool_calls) {
+        // If there's only a tool call and no text, provide a generic confirmation
+        setMessages(prev => [...prev, { role: 'assistant', content: "Got it. I've updated your list." }]);
       }
 
     } catch (error) {
       console.error('Error getting response:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       setMessages([...newMessages, {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.'
+        content: `Sorry, I encountered an error: ${errorMessage}`
       }]);
     } finally {
       setIsLoading(false);

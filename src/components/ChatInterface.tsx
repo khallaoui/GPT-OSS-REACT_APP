@@ -41,7 +41,7 @@ export function ChatInterface() {
     try {
       const response = await getPersonalizedAdvice({
         userInput: userMessageContent,
-        chatHistory: newMessages.slice(-5) // Send last 5 messages for context
+        chatHistory: newMessages.slice(-5).map(m => ({role: m.role, content: m.content}))
       });
       setMessages([...newMessages, { role: 'assistant', content: response }]);
     } catch (error) {

@@ -7,13 +7,12 @@
  * - PersonalizedAdviceOutput - The return type for the getPersonalizedAdvice function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const PersonalizedAdviceInputSchema = z.object({
   userInput: z.string().describe('The user input describing their needs and goals for morning/evening routines.'),
   chatHistory: z.array(z.object({
-    role: z.enum(['user', 'assistant']).describe('The role of the message sender'),
+    role: z.enum(['user', 'assistant', 'system']).describe('The role of the message sender'),
     content: z.string().describe('The content of the message'),
   })).optional().describe('The chat history of the conversation.'),
 });
@@ -25,36 +24,40 @@ const PersonalizedAdviceOutputSchema = z.object({
 export type PersonalizedAdviceOutput = z.infer<typeof PersonalizedAdviceOutputSchema>;
 
 export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Promise<PersonalizedAdviceOutput> {
-  return personalizedAdviceFlow(input);
-}
+  const messages = [
+    {
+      role: 'system' as const,
+      content: 'You are GPT-Life, an AI personality coach helping users build better habits and develop their personality. Give practical, actionable advice in a motivational tone.'
+    },
+    ...(input.chatHistory || []).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+    { role: 'user' as const, content: input.userInput }
+  ];
 
-const prompt = ai.definePrompt({
-  name: 'personalizedAdvicePrompt',
-  input: {schema: PersonalizedAdviceInputSchema},
-  output: {schema: PersonalizedAdviceOutputSchema},
-  prompt: `You are an AI life coach specializing in providing personalized advice for morning and evening routines. Based on the user's input, provide specific, actionable suggestions for building better habits and improving their daily life.
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "openrouter/cinematika-7b:free", // "openai/gpt-oss-20b:free" seems to be unavailable, using a free alternative
+        messages: messages,
+        max_tokens: 300,
+        temperature: 0.7
+      }),
+    });
 
-User Input: {{{userInput}}}
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
 
-{% if chatHistory %}
-Chat History:
-{% each chatHistory %}
-{{this.role}}: {{this.content}}
-{% endeach %}
-{% endif %}
-
-Provide tailored advice:
-`,
-});
-
-const personalizedAdviceFlow = ai.defineFlow(
-  {
-    name: 'personalizedAdviceFlow',
-    inputSchema: PersonalizedAdviceInputSchema,
-    outputSchema: PersonalizedAdviceOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const data = await response.json();
+    const advice = data?.choices?.[0]?.message?.content || "Sorry, I couldn't generate a response. Try again.";
+    return { advice };
+  } catch (error) {
+    console.error("Error fetching AI response:", error);
+    return { advice: "Oops! Something went wrong. Please check your API key and try again later." };
   }
-);
+}

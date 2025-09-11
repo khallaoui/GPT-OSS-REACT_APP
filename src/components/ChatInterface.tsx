@@ -54,49 +54,66 @@ export function ChatInterface() {
       addGoal(args);
       toast({ title: "Goal Set!", description: `You're on your way to achieving "${args.title}".` });
     }
+    return `Tool ${name} executed successfully.`;
   };
 
 
   const handleSend = async (prompt?: string) => {
     const userMessageContent = prompt || input;
     if (!userMessageContent.trim() || isLoading) return;
-
+  
     const newUserMessage: ChatMessage = { role: 'user', content: userMessageContent };
-    const newMessages: ChatMessage[] = [...messages, newUserMessage];
-    setMessages(newMessages);
+    let currentMessages: ChatMessage[] = [...messages, newUserMessage];
+    setMessages(currentMessages);
     setInput('');
     setIsLoading(true);
-
+  
     try {
-      const result = await getPersonalizedAdvice({
+      let result = await getPersonalizedAdvice({
         userInput: userMessageContent,
-        chatHistory: newMessages.slice(-5).map(m => ({role: m.role as any, content: m.content}))
+        chatHistory: messages.slice(-5).map(m => ({role: m.role as any, content: m.content, tool_calls: (m as any).tool_calls, tool_call_id: (m as any).tool_call_id }))
       });
-
-      const choice = result.response;
+  
+      let choice = result.response;
       if (!choice || !choice.message) {
-         throw new Error("Invalid response structure from AI.");
-      }
-
-      const { content, tool_calls } = choice.message;
-
-      // Handle tool calls if they exist
-      if (tool_calls && tool_calls.length > 0) {
-        tool_calls.forEach(handleToolCall);
+        throw new Error("Invalid response structure from AI.");
       }
       
-      // Add the assistant's text response to the chat
-      if (content) {
-         setMessages(prev => [...prev, { role: 'assistant', content }]);
-      } else if (tool_calls) {
-        // If there's only a tool call and no text, provide a generic confirmation
-        setMessages(prev => [...prev, { role: 'assistant', content: "Got it. I've updated your list." }]);
-      }
+      let assistantMessage = choice.message;
+      currentMessages = [...currentMessages, { role: 'assistant', content: assistantMessage.content || '', tool_calls: assistantMessage.tool_calls }];
+      setMessages(currentMessages);
+  
+      // Check for tool calls and handle them
+      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+        const toolCall = assistantMessage.tool_calls[0]; // Assuming one tool call at a time for simplicity
+        const toolResultContent = handleToolCall(toolCall);
+        
+        const toolResponseMessage: ChatMessage = {
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: toolResultContent
+        };
+        
+        currentMessages = [...currentMessages, toolResponseMessage];
+        setMessages(currentMessages);
 
+        // Send the tool result back to the AI to get a final text response
+        const finalResult = await getPersonalizedAdvice({
+            userInput: '', // No new user input
+            chatHistory: currentMessages.slice(-6).map(m => ({role: m.role as any, content: m.content, tool_calls: (m as any).tool_calls, tool_call_id: (m as any).tool_call_id }))
+        });
+
+        const finalChoice = finalResult.response;
+        if (finalChoice && finalChoice.message && finalChoice.message.content) {
+            const finalAssistantMessage = { role: 'assistant', content: finalChoice.message.content };
+            setMessages(prev => [...prev, finalAssistantMessage]);
+        }
+      }
+  
     } catch (error) {
       console.error('Error getting response:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      setMessages([...newMessages, {
+      setMessages(prev => [...prev, {
         role: 'assistant',
         content: `Sorry, I encountered an error: ${errorMessage}`
       }]);
@@ -117,6 +134,8 @@ export function ChatInterface() {
             </div>
           )}
           {messages.map((msg, index) => (
+            // Only render messages that are from user/assistant and have content
+            (msg.role === 'user' || (msg.role === 'assistant' && msg.content)) &&
             <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
               {msg.role === 'assistant' && (
                 <Avatar className="w-8 h-8 bg-primary text-primary-foreground">

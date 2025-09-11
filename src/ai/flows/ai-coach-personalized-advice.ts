@@ -55,8 +55,10 @@ const tools = [
 const PersonalizedAdviceInputSchema = z.object({
   userInput: z.string().describe('The user input describing their needs and goals for morning/evening routines.'),
   chatHistory: z.array(z.object({
-    role: z.enum(['user', 'assistant', 'system']).describe('The role of the message sender'),
+    role: z.enum(['user', 'assistant', 'system', 'tool']).describe('The role of the message sender'),
     content: z.string().describe('The content of the message'),
+    tool_calls: z.any().optional(),
+    tool_call_id: z.string().optional(),
   })).optional().describe('The chat history of the conversation.'),
 });
 export type PersonalizedAdviceInput = z.infer<typeof PersonalizedAdviceInputSchema>;
@@ -77,7 +79,7 @@ If the user asks to create a habit or set a goal, use the provided tools to do s
 Infer the category for habits based on the user's request.
 Acknowledge that the habit or goal has been created after using a tool.`
     },
-    ...(input.chatHistory || []).map(m => ({ role: m.role, content: m.content })),
+    ...(input.chatHistory || []).map(m => ({ role: m.role, content: m.content, tool_calls: m.tool_calls, tool_call_id: m.tool_call_id })),
     { role: 'user', content: input.userInput }
   ];
 

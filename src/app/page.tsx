@@ -29,11 +29,7 @@ export default function Home() {
                   <AppLogo className="h-8 w-8 text-primary" />
                   <h1 className="text-xl font-bold font-headline">GPT-Life AI Coach</h1>
                 </div>
-                <SidebarTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden">
-                    <PanelLeft />
-                  </Button>
-                </SidebarTrigger>
+                <SidebarTrigger className="md:hidden" />
             </header>
             
             <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">

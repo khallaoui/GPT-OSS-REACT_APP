@@ -41,7 +41,7 @@ export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Pro
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`
       },
       body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
+        model: "openai/gpt-oss-20b:free",
         messages: messages,
         max_tokens: 300,
         temperature: 0.7

@@ -27,7 +27,7 @@ export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Pro
 export async function generateDailyPlan(input: GenerateDailyPlanInput): Promise<string> {
     try {
         const result = await generateDailyPlanFlow(input);
-        return result.dailyPlan;
+        return result;
     } catch (error) {
         console.error("Error in generateDailyPlan:", error);
         return "I'm sorry, but I couldn't generate a daily plan at this moment. Please check your goals and try again.";
@@ -37,7 +37,7 @@ export async function generateDailyPlan(input: GenerateDailyPlanInput): Promise<
 export async function improveHabitMethods(input: ImproveHabitMethodsInput): Promise<string> {
     try {
         const result = await improveHabitMethodsFlow(input);
-        return result.suggestions;
+        return result;
     } catch (error) {
         console.error("Error in improveHabitMethods:", error);
         return "I'm having trouble coming up with suggestions right now. Please tell me more about your habit and I'll try again.";

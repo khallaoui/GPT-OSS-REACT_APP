@@ -5,11 +5,9 @@
  *
  * - improveHabitMethods - A function that suggests improved methods for a given habit.
  * - ImproveHabitMethodsInput - The input type for the improveHabitMethods function.
- * - ImproveHabitMethodsOutput - The return type for the improveHabitMethods function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from 'zod';
 
 const ImproveHabitMethodsInputSchema = z.object({
   habitName: z.string().describe('The name of the habit to improve.'),
@@ -17,31 +15,36 @@ const ImproveHabitMethodsInputSchema = z.object({
 });
 export type ImproveHabitMethodsInput = z.infer<typeof ImproveHabitMethodsInputSchema>;
 
-const ImproveHabitMethodsOutputSchema = z.object({
-  suggestions: z.string().describe('A list of improved methods or techniques to make the habit more effective.'),
-});
-export type ImproveHabitMethodsOutput = z.infer<typeof ImproveHabitMethodsOutputSchema>;
 
-export async function improveHabitMethods(input: ImproveHabitMethodsInput): Promise<ImproveHabitMethodsOutput> {
-  return improveHabitMethodsFlow(input);
+export async function improveHabitMethods(input: ImproveHabitMethodsInput): Promise<string> {
+    const prompt = `You are an AI habit coach. A user has the habit '${input.habitName}' and currently does it like this: ${input.currentMethod}.\n\
+Please suggest 3 improved methods or techniques to make this habit more effective, sustainable, and rewarding.\nProvide specific, actionable suggestions.\n`;
+
+    try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-4o-mini",
+            messages: [
+              { role: 'user', content: prompt }
+            ],
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorText}`);
+          return "Sorry, I couldn't generate suggestions at this time.";
+        }
+
+        const data = await response.json();
+        return data.choices[0]?.message?.content || "Sorry, I received an empty response.";
+    } catch (error) {
+        console.error("Error fetching from OpenRouter:", error);
+        return "Oops! Something went wrong. Please check your API key and try again later.";
+    }
 }
-
-const prompt = ai.definePrompt({
-  name: 'improveHabitMethodsPrompt',
-  input: {schema: ImproveHabitMethodsInputSchema},
-  output: {schema: ImproveHabitMethodsOutputSchema},
-  prompt: `You are an AI habit coach. A user has the habit '{{habitName}}' and currently does it like this: {{currentMethod}}.\n\
-Please suggest 3 improved methods or techniques to make this habit more effective, sustainable, and rewarding.\nProvide specific, actionable suggestions.\n`,
-});
-
-const improveHabitMethodsFlow = ai.defineFlow(
-  {
-    name: 'improveHabitMethodsFlow',
-    inputSchema: ImproveHabitMethodsInputSchema,
-    outputSchema: ImproveHabitMethodsOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);

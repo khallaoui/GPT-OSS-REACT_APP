@@ -15,16 +15,6 @@ import ReactMarkdown from 'react-markdown';
 import { useAppContext } from '@/context/AppContext';
 import { useToast } from '@/hooks/use-toast';
 
-// Type for the tool call object from the API response
-type ToolCall = {
-  id: string;
-  function: {
-    name: string;
-    arguments: string;
-  };
-  type: 'function';
-};
-
 export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -43,93 +33,47 @@ export function ChatInterface() {
     }
   }, [messages]);
 
-  const handleToolCall = (toolCall: ToolCall) => {
-    const { name, arguments: argsString } = toolCall.function;
-    const args = JSON.parse(argsString);
-    console.log('Tool call:', name, args);
-
-    if (name === 'addHabit') {
-      addHabit(args);
-      toast({ title: "Habit Added!", description: `"${args.name}" is now on your list.` });
-    } else if (name === 'addGoal') {
-      addGoal(args);
-      toast({ title: "Goal Set!", description: `You're on your way to achieving "${args.title}".` });
-    }
-    // Return a simple string indicating success for the AI to process
-    return `Tool ${name} executed successfully with arguments: ${JSON.stringify(args)}. Acknowledge this and confirm to the user.`;
-  };
-
-
   const handleSend = async (prompt?: string) => {
     const userMessageContent = prompt || input;
     if (!userMessageContent.trim() || isLoading) return;
-  
+
     const newUserMessage: ChatMessage = { role: 'user', content: userMessageContent };
-    setMessages(prev => [...prev, newUserMessage]);
+    const currentMessages = [...messages, newUserMessage];
+    setMessages(currentMessages);
     setInput('');
     setIsLoading(true);
-  
-    // Maintain a history for the current conversation turn
-    let currentTurnHistory: ChatMessage[] = [...messages, newUserMessage];
-  
+
     try {
-      // First call to the AI
-      const initialResult = await getPersonalizedAdvice({
+      const result = await getPersonalizedAdvice({
         userInput: userMessageContent,
-        chatHistory: messages.slice(-5).map(m => ({role: m.role as any, content: m.content, tool_calls: (m as any).tool_calls, tool_call_id: (m as any).tool_call_id }))
+        chatHistory: messages.slice(-5).map(m => ({
+            role: m.role as any,
+            content: m.content,
+            tool_calls: m.tool_calls,
+            tool_call_id: m.tool_call_id
+        }))
       });
-  
-      const firstChoice = initialResult.response;
-      if (!firstChoice || !firstChoice.message) {
-        throw new Error("Invalid response structure from AI.");
-      }
       
-      const assistantMessage = firstChoice.message;
-      const assistantResponse: ChatMessage = { 
-        role: 'assistant', 
-        content: assistantMessage.content || '',
-        tool_calls: assistantMessage.tool_calls
-      };
+      const { responseMessage, createdHabit, createdGoal } = result;
 
-      currentTurnHistory.push(assistantResponse);
-      setMessages(currentTurnHistory);
-
-      // Handle tool calls if they exist
-      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-        const toolResults: ChatMessage[] = [];
-
-        // Execute tools and collect results
-        for (const toolCall of assistantMessage.tool_calls) {
-          const toolResultContent = handleToolCall(toolCall);
-          toolResults.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: toolResultContent,
-          });
-        }
-        
-        // Add tool responses to history for the next AI call
-        currentTurnHistory.push(...toolResults);
-        setMessages(currentTurnHistory);
-        
-        // Second call to the AI with the tool results
-        const finalResult = await getPersonalizedAdvice({
-            userInput: '', // No new user input needed
-            chatHistory: currentTurnHistory.slice(-6).map(m => ({
-              role: m.role as any, 
-              content: m.content, 
-              tool_calls: (m as any).tool_calls, 
-              tool_call_id: m.tool_call_id 
-            }))
-        });
-
-        const finalChoice = finalResult.response;
-        if (finalChoice && finalChoice.message && finalChoice.message.content) {
-            const finalAssistantMessage: ChatMessage = { role: 'assistant', content: finalChoice.message.content };
-            setMessages(prev => [...prev, finalAssistantMessage]);
-        }
+      if (createdHabit) {
+        addHabit(createdHabit);
+        toast({ title: "Habit Added!", description: `"${createdHabit.name}" is now on your list.` });
       }
-  
+
+      if (createdGoal) {
+        addGoal(createdGoal);
+        toast({ title: "Goal Set!", description: `You're on your way to achieving "${createdGoal.title}".` });
+      }
+
+      if (responseMessage.content) {
+        const assistantResponse: ChatMessage = {
+          role: 'assistant',
+          content: responseMessage.content,
+        };
+        setMessages(prev => [...prev, assistantResponse]);
+      }
+
     } catch (error) {
       console.error('Error getting response:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
@@ -155,8 +99,6 @@ export function ChatInterface() {
             </div>
           )}
           {messages.map((msg, index) => (
-            // Only render messages that are from user/assistant and have content
-            (msg.role === 'user' || (msg.role === 'assistant' && msg.content)) &&
             <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
               {msg.role === 'assistant' && (
                 <Avatar className="w-8 h-8 bg-primary text-primary-foreground">

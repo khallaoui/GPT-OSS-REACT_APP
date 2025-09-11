@@ -20,7 +20,13 @@ export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Pro
     return result;
   } catch (error) {
     console.error("Error in getPersonalizedAdvice:", error);
-    return { response: { message: { content: "I'm sorry, but I encountered an error while generating advice. Please try again later." } } };
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+    return { 
+        responseMessage: { 
+            role: 'assistant',
+            content: `I'm sorry, but I encountered an error while generating advice: ${errorMessage}`
+        } 
+    };
   }
 }
 

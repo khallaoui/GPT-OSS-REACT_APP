@@ -2,7 +2,8 @@
 
 import { 
   getPersonalizedAdvice as getPersonalizedAdviceFlow,
-  type PersonalizedAdviceInput
+  type PersonalizedAdviceInput,
+  type PersonalizedAdviceOutput
 } from '@/ai/flows/ai-coach-personalized-advice';
 import { 
   generateDailyPlan as generateDailyPlanFlow,
@@ -13,13 +14,13 @@ import {
   type ImproveHabitMethodsInput
 } from '@/ai/flows/improve-habit-methods';
 
-export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Promise<string> {
+export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Promise<PersonalizedAdviceOutput> {
   try {
     const result = await getPersonalizedAdviceFlow(input);
-    return result.advice;
+    return result;
   } catch (error) {
     console.error("Error in getPersonalizedAdvice:", error);
-    return "I'm sorry, but I encountered an error while generating advice. Please try again later.";
+    return { response: "I'm sorry, but I encountered an error while generating advice. Please try again later."};
   }
 }
 

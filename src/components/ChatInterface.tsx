@@ -11,6 +11,9 @@ import { Send, Sparkles } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { AppLogo } from '@/components/icons';
 import ReactMarkdown from 'react-markdown';
+import { useAppContext } from '@/context/AppContext';
+import { useToast } from '@/hooks/use-toast';
+import { Part, GenerationResponse, isToolRequest, isToolResponse } from 'genkit';
 
 
 export function ChatInterface() {
@@ -18,6 +21,9 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  const { addHabit, addGoal } = useAppContext();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -28,22 +34,58 @@ export function ChatInterface() {
     }
   }, [messages]);
 
+  const handleToolCall = (toolRequest: Part) => {
+      const toolData = toolRequest.toolRequest;
+      console.log('Tool call:', toolData.name, toolData.input);
+      if (toolData.name === 'addHabit') {
+        addHabit(toolData.input);
+        toast({ title: "Habit Added!", description: `"${toolData.input.name}" is now on your list.` });
+      } else if (toolData.name === 'addGoal') {
+        addGoal(toolData.input);
+        toast({ title: "Goal Set!", description: `You're on your way to achieving "${toolData.input.title}".` });
+      }
+  };
+
+
   const handleSend = async (prompt?: string) => {
     const userMessageContent = prompt || input;
     if (!userMessageContent.trim() || isLoading) return;
 
     const newUserMessage: ChatMessage = { role: 'user', content: userMessageContent };
-    const newMessages = [...messages, newUserMessage];
+    const newMessages: ChatMessage[] = [...messages, newUserMessage];
     setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
     try {
-      const response = await getPersonalizedAdvice({
+      const result = await getPersonalizedAdvice({
         userInput: userMessageContent,
-        chatHistory: newMessages.slice(-5).map(m => ({role: m.role, content: m.content}))
+        chatHistory: newMessages.slice(-5).map(m => ({role: m.role as any, content: m.content}))
       });
-      setMessages([...newMessages, { role: 'assistant', content: response }]);
+
+      const response = result.response as GenerationResponse;
+      const responseContent = response.content;
+
+      if(responseContent) {
+        let textResponse = '';
+        responseContent.forEach(part => {
+          if (part.text) {
+            textResponse += part.text;
+          }
+          if (isToolRequest(part)) {
+            handleToolCall(part);
+          }
+          if(isToolResponse(part)){
+            // You might want to display tool responses differently
+            console.log('Tool response:', part.toolResponse);
+          }
+        });
+        
+        if (textResponse) {
+          setMessages(prev => [...prev, { role: 'assistant', content: textResponse }]);
+        }
+      }
+
     } catch (error) {
       console.error('Error getting response:', error);
       setMessages([...newMessages, {
@@ -108,7 +150,7 @@ export function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask for advice on habits or productivity..."
+            placeholder="Ask for advice, or 'add a habit to...' "
             disabled={isLoading}
             className="flex-1"
           />

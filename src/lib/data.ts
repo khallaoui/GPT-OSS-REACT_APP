@@ -78,10 +78,10 @@ export const habitSuggestions: Record<string, string[]> = {
 };
 
 export const chatExamples: string[] = [
-  "How can I be more disciplined with my morning routine?",
-  "I want to wake up at 5 AM consistently, what's the best approach?",
-  "Help me build better social skills and confidence",
-  "I need help with time management and productivity",
-  "How to develop a consistent reading habit?",
-  "Suggest ways to improve my current exercise routine"
+  "Add a new habit to read 10 pages a day",
+  "Set a goal to learn Next.js in 1 month",
+  "Help me build better social skills",
+  "I need help with time management",
+  "How to develop a consistent exercise habit?",
+  "Suggest ways to improve my current sleep routine"
 ];

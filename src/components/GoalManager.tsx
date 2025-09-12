@@ -10,10 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { PlusCircle, Target, Trophy, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getDailyPlan } from '@/app/actions';
+import { getAICoachResponse } from '@/app/actions';
 
 export function GoalManager() {
-  const { goals, addGoal, updateGoalProgress } = useAppContext();
+  const { goals, addGoal, updateGoalProgress, habits } = useAppContext();
   const { toast } = useToast();
 
   const handleGeneratePlan = async () => {
@@ -26,11 +26,15 @@ export function GoalManager() {
       return;
     }
     toast({ title: '🤖 AI is crafting your plan...', description: 'This might take a moment.' });
-    const goalTitles = goals.map(g => g.title);
-    const plan = await getDailyPlan({ userGoals: goalTitles });
+    
+    const goalTitles = goals.map(g => g.title).join(', ');
+    const prompt = `Based on my goals (${goalTitles}), generate a simple daily action plan for me.`;
+
+    const result = await getAICoachResponse({ userInput: prompt, habits: habits });
+    
     toast({
       title: '📅 Your AI-Generated Daily Plan',
-      description: <pre className="mt-2 w-full rounded-md bg-slate-950 p-4"><code className="text-white whitespace-pre-wrap">{plan}</code></pre>,
+      description: <pre className="mt-2 w-full rounded-md bg-slate-950 p-4"><code className="text-white whitespace-pre-wrap">{result.response}</code></pre>,
       duration: 20000,
     });
   };

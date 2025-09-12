@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlusCircle, Flame, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getHabitSuggestions } from '@/app/actions';
+import { getAICoachResponse } from '@/app/actions';
 import type { Habit } from '@/lib/types';
 
 
@@ -32,10 +32,11 @@ export function HabitTracker() {
 
   const handleGetAISuggestions = async (habitName: string, currentMethod: string) => {
     toast({ title: '🤖 AI Thinking...', description: 'Generating suggestions to improve your habit.' });
-    const suggestions = await getHabitSuggestions({ habitName, currentMethod });
+    const prompt = `I have a habit "${habitName}" which I'm trying to follow by "${currentMethod}". Can you give me some actionable suggestions to improve my consistency?`;
+    const result = await getAICoachResponse({ userInput: prompt, habits });
     toast({
       title: `✨ Suggestions for "${habitName}"`,
-      description: <pre className="whitespace-pre-wrap font-sans">{suggestions}</pre>,
+      description: <pre className="whitespace-pre-wrap font-sans">{result.response}</pre>,
       duration: 15000,
     });
   };

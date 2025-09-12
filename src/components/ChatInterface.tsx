@@ -11,15 +11,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { AppLogo } from '@/components/icons';
 import ReactMarkdown from 'react-markdown';
 import { useAppContext } from '@/context/AppContext';
-import { useToast } from '@/hooks/use-toast';
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  const { habits: existingHabits } = useAppContext();
   
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -42,7 +39,6 @@ export function ChatInterface() {
     try {
       const result = await getPersonalizedAdvice({
         userInput: userMessageContent,
-        existingHabits: (existingHabits as any),
       });
 
       const assistantMessage = result.response;
@@ -68,8 +64,8 @@ export function ChatInterface() {
           {messages.length === 0 && (
             <div className="text-center p-8 rounded-lg">
                 <Sparkles className="mx-auto h-12 w-12 text-primary" />
-                <h2 className="mt-4 text-2xl font-bold font-headline">Your AI Habit Assistant</h2>
-                <p className="mt-2 text-muted-foreground">Ask me anything about habits, goals, or personal growth.</p>
+                <h2 className="mt-4 text-2xl font-bold font-headline">Your AI Assistant</h2>
+                <p className="mt-2 text-muted-foreground">Ask me anything.</p>
             </div>
           )}
           {messages.map((msg, index) => (
@@ -114,7 +110,7 @@ export function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask for advice..."
+            placeholder="Ask anything..."
             disabled={isLoading}
             className="flex-1"
           />

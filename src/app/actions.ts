@@ -1,17 +1,12 @@
 'use server';
 
-import {
-  getPersonalizedAdvice,
-  generateDailyPlan,
-  improveHabitMethods,
-} from '@/lib/gemini';
+import { getPersonalizedAdvice } from '@/ai/flows/ai-coach-personalized-advice';
+import { generateDailyPlan } from '@/ai/flows/generate-daily-plan';
+import { improveHabitMethods } from '@/ai/flows/improve-habit-methods';
 
-import type {
-  PersonalizedAdviceInput,
-  PersonalizedAdviceOutput,
-} from '@/lib/gemini';
-import type { GenerateDailyPlanInput } from '@/lib/gemini';
-import type { ImproveHabitMethodsInput } from '@/lib/gemini';
+import type { PersonalizedAdviceInput, PersonalizedAdviceOutput } from '@/ai/flows/ai-coach-personalized-advice';
+import type { GenerateDailyPlanInput } from '@/ai/flows/generate-daily-plan';
+import type { ImproveHabitMethodsInput } from '@/ai/flows/improve-habit-methods';
 
 // This is a simple wrapper for the AI call to be used in client components.
 export async function getAICoachResponse(
@@ -33,7 +28,7 @@ export async function getDailyPlan(
 ): Promise<string> {
   try {
     const result = await generateDailyPlan(input);
-    return result;
+    return result.plan;
   } catch (error) {
     console.error('Error in generateDailyPlan:', error);
     return "I'm sorry, but I couldn't generate a daily plan at this moment. Please check your goals and try again.";
@@ -45,7 +40,7 @@ export async function getHabitSuggestions(
 ): Promise<string> {
   try {
     const result = await improveHabitMethods(input);
-    return result;
+    return result.suggestions;
   } catch (error) {
     console.error('Error in improveHabitMethods:', error);
     return "I'm having trouble coming up with suggestions right now. Please tell me more about your habit and I'll try again.";

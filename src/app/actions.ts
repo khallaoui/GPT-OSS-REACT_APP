@@ -1,12 +1,12 @@
 'use server';
 
 import { getPersonalizedAdvice } from '@/ai/flows/ai-coach-personalized-advice';
-import { generateDailyPlan } from '@/ai/flows/generate-daily-plan';
-import { improveHabitMethods } from '@/ai/flows/improve-habit-methods';
-
 import type { PersonalizedAdviceInput, PersonalizedAdviceOutput } from '@/ai/flows/ai-coach-personalized-advice';
-import type { GenerateDailyPlanInput } from '@/ai/flows/generate-daily-plan';
-import type { ImproveHabitMethodsInput } from '@/ai/flows/improve-habit-methods';
+// These flows are now empty and will be removed, so their imports are commented out.
+// import { generateDailyPlan } from '@/ai/flows/generate-daily-plan';
+// import { improveHabitMethods } from '@/ai/flows/improve-habit-methods';
+// import type { GenerateDailyPlanInput } from '@/ai/flows/generate-daily-plan';
+// import type { ImproveHabitMethodsInput } from '@/ai/flows/improve-habit-methods';
 
 // This is a simple wrapper for the AI call to be used in client components.
 export async function getAICoachResponse(
@@ -23,6 +23,8 @@ export async function getAICoachResponse(
   }
 }
 
+// The functions below are commented out as their corresponding flows are being removed.
+/*
 export async function getDailyPlan(
   input: GenerateDailyPlanInput
 ): Promise<string> {
@@ -46,3 +48,4 @@ export async function getHabitSuggestions(
     return "I'm having trouble coming up with suggestions right now. Please tell me more about your habit and I'll try again.";
   }
 }
+*/

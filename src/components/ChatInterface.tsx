@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getAICoachResponse } from '@/app/actions';
 import { useAppContext } from '@/context/AppContext';
-import type { ChatMessage, Habit } from '@/lib/types';
+import type { ChatMessage, Habit, PersonalizedAdviceInput } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -58,10 +58,7 @@ export function ChatInterface() {
       setMessages(prev => [...prev, assistantMessage]);
 
       if (result.updatedHabits && result.updatedHabits.length > 0) {
-        // Since the flow now generates IDs, we can just merge them.
-        const newFullHabitList = [...habits, ...result.updatedHabits] as Habit[];
-        setHabits(newFullHabitList);
-
+        setHabits([...habits, ...result.updatedHabits]);
         toast({
           title: "Habit Added!",
           description: `The AI has added "${result.updatedHabits[0].title}" to your list.`,
@@ -73,7 +70,7 @@ export function ChatInterface() {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       const errorResponse: ChatMessage = {
         role: 'assistant',
-        content: `Sorry, I encountered an error: ${errorMessage}`
+        content: `I'm sorry, but I couldn't get a response. Please try again.`
       };
       setMessages(prev => [...prev, errorResponse]);
     } finally {

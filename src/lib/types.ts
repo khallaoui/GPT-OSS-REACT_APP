@@ -33,3 +33,14 @@ export interface Category {
   label: string;
   icon: LucideIcon;
 }
+
+// AI-related types
+export interface PersonalizedAdviceInput {
+  userInput: string;
+  habits: Habit[];
+}
+
+export interface PersonalizedAdviceOutput {
+  response: string;
+  updatedHabits?: Habit[];
+}

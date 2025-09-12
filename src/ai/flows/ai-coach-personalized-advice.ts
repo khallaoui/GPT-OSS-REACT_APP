@@ -4,6 +4,8 @@
  */
 import { z } from 'zod';
 import type { Habit } from '@/lib/types';
+import { ai } from '@/ai/genkit';
+import { geminiPro } from '@genkit-ai/googleai';
 
 // The user-specified habit object format.
 const HabitSchema = z.object({
@@ -34,10 +36,16 @@ export type PersonalizedAdviceOutput = {
   updatedHabits: Habit[];
 };
 
+const PersonalizedAdviceOutputSchema = z.object({
+  updatedHabits: z.array(HabitSchema)
+});
 
-export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Promise<PersonalizedAdviceOutput> {
-  // Construct the prompt following the user's rules.
-  const systemPrompt = `You are my habit assistant.
+
+const habitPrompt = ai.definePrompt({
+  name: 'habitPrompt',
+  inputSchema: PersonalizedAdviceInputSchema,
+  outputSchema: AIResponseSchema,
+  prompt: `You are my habit assistant.
 When I describe a new habit or goal in plain text, create a new habit object for it and add it to my list.
 
 The object must include:
@@ -55,50 +63,33 @@ Rules:
 3. Always append the new habit to the existing list.
 
 This is the existing list of habits:
-${JSON.stringify(input.existingHabits, null, 2)}
-`;
+{{{json existingHabits}}}
+`,
+});
 
-  try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: input.userInput }
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorText}`);
+const getPersonalizedAdviceFlow = ai.defineFlow(
+  {
+    name: 'getPersonalizedAdviceFlow',
+    inputSchema: PersonalizedAdviceInputSchema,
+    outputSchema: PersonalizedAdviceOutputSchema,
+  },
+  async (input) => {
+
+    const llmResponse = await habitPrompt(input);
+    const output = llmResponse.output();
+
+    if (!output) {
       // On error, return the original list of habits.
       return { updatedHabits: input.existingHabits };
     }
-
-    const data = await response.json();
-    const responseContent = JSON.parse(data.choices[0].message.content);
-
-    // Validate the response against the Zod schema.
-    const parsed = AIResponseSchema.safeParse(responseContent);
-
-    if (!parsed.success) {
-      console.error("Invalid format from AI:", parsed.error);
-      // Return existing habits if AI response is invalid
-      return { updatedHabits: input.existingHabits };
-    }
-
-    return { updatedHabits: parsed.data.habits };
-
-  } catch (error) {
-    console.error("Error calling OpenRouter:", error);
-    // On error, return the original list of habits without changes.
-    return { updatedHabits: input.existingHabits };
+    
+    return { updatedHabits: output.habits };
   }
+);
+
+
+export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Promise<PersonalizedAdviceOutput> {
+  const result = await getPersonalizedAdviceFlow(input);
+  return result;
 }

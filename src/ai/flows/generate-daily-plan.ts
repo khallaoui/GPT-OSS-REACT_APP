@@ -6,7 +6,6 @@
  * @typedef {GenerateDailyPlanInput} GenerateDailyPlanInput - Input type for the generateDailyPlan function.
  */
 import { ai } from '@/ai/genkit';
-import { geminiPro } from '@genkit-ai/googleai';
 import { z } from 'zod';
 
 const GenerateDailyPlanInputSchema = z.object({
@@ -25,7 +24,7 @@ const dailyPlanFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await ai.generate({
-      model: geminiPro,
+      model: 'googleai/gemini-1.5-flash-latest',
       prompt: `Create a comprehensive daily plan for someone with these goals: ${input.userGoals.join(', ')}.
 Include morning routine, work/study blocks, breaks, evening routine, and self-care activities.
 Make it realistic and time-specific.`,
@@ -34,7 +33,7 @@ Make it realistic and time-specific.`,
       }
     });
 
-    return llmResponse.text();
+    return llmResponse.text;
   }
 );
 

@@ -7,7 +7,6 @@
  * - ImproveHabitMethodsInput - The input type for the improveHabitMethods function.
  */
 import { ai } from '@/ai/genkit';
-import { geminiPro } from '@genkit-ai/googleai';
 import { z } from 'zod';
 
 const ImproveHabitMethodsInputSchema = z.object({
@@ -24,11 +23,11 @@ const improveHabitMethodsFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await ai.generate({
-      model: geminiPro,
+      model: 'googleai/gemini-1.5-flash-latest',
       prompt: `You are an AI habit coach. A user has the habit '${input.habitName}' and currently does it like this: ${input.currentMethod}.\n\
 Please suggest 3 improved methods or techniques to make this habit more effective, sustainable, and rewarding.\nProvide specific, actionable suggestions.\n`,
     });
-    return llmResponse.text();
+    return llmResponse.text;
   }
 );
 

@@ -5,7 +5,6 @@
 import { z } from 'zod';
 import type { Habit } from '@/lib/types';
 import { ai } from '@/ai/genkit';
-import { geminiPro } from '@genkit-ai/googleai';
 
 // The user-specified habit object format.
 const HabitSchema = z.object({
@@ -45,6 +44,7 @@ const habitPrompt = ai.definePrompt({
   name: 'habitPrompt',
   inputSchema: PersonalizedAdviceInputSchema,
   outputSchema: AIResponseSchema,
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are my habit assistant.
 When I describe a new habit or goal in plain text, create a new habit object for it and add it to my list.
 
@@ -77,7 +77,7 @@ const getPersonalizedAdviceFlow = ai.defineFlow(
   async (input) => {
 
     const llmResponse = await habitPrompt(input);
-    const output = llmResponse.output();
+    const output = llmResponse.output;
 
     if (!output) {
       // On error, return the original list of habits.

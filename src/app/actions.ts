@@ -20,8 +20,7 @@ export async function getPersonalizedAdvice(input: PersonalizedAdviceInput): Pro
     return result;
   } catch (error) {
     console.error("Error in getPersonalizedAdvice:", error);
-    // On error, return the existing habits
-    return { updatedHabits: input.existingHabits };
+    return { response: "I'm sorry, but I couldn't get a response. Please try again." };
   }
 }
 

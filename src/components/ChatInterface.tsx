@@ -19,9 +19,8 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const { habits: existingHabits, setHabits } = useAppContext();
-  const { toast } = useToast();
-
+  const { habits: existingHabits } = useAppContext();
+  
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({
@@ -46,20 +45,7 @@ export function ChatInterface() {
         existingHabits: (existingHabits as any),
       });
 
-      const { updatedHabits } = result;
-      const oldHabitCount = existingHabits.length;
-      const newHabitCount = updatedHabits.length;
-      
-      // Update the habits list in the context
-      setHabits(updatedHabits);
-
-      let assistantMessage = "I've updated your habits.";
-      if (newHabitCount > oldHabitCount) {
-        const newHabit = updatedHabits[updatedHabits.length - 1];
-        assistantMessage = `I've added the new habit "${newHabit.title}" for you.`;
-        toast({ title: "Habit Added!", description: `"${newHabit.title}" is now on your list.` });
-      }
-
+      const assistantMessage = result.response;
       setMessages(prev => [...prev, {role: 'assistant', content: assistantMessage}]);
 
     } catch (error) {
@@ -83,7 +69,7 @@ export function ChatInterface() {
             <div className="text-center p-8 rounded-lg">
                 <Sparkles className="mx-auto h-12 w-12 text-primary" />
                 <h2 className="mt-4 text-2xl font-bold font-headline">Your AI Habit Assistant</h2>
-                <p className="mt-2 text-muted-foreground">Describe a habit you want to start.</p>
+                <p className="mt-2 text-muted-foreground">Ask me anything about habits, goals, or personal growth.</p>
             </div>
           )}
           {messages.map((msg, index) => (
@@ -128,7 +114,7 @@ export function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="e.g., I want to run 3 times a week."
+            placeholder="Ask for advice..."
             disabled={isLoading}
             className="flex-1"
           />
@@ -137,14 +123,14 @@ export function ChatInterface() {
           </Button>
         </div>
         <div className="flex flex-wrap gap-2 mt-3">
-            <Button onClick={() => handleSend("Go for a 20-minute walk every morning.")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
-              "Walk 20min every morning"
+            <Button onClick={() => handleSend("How can I be more consistent with my habits?")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
+              "How can I be more consistent?"
             </Button>
-            <Button onClick={() => handleSend("Read one chapter of a book before bed.")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
-              "Read a chapter before bed"
+            <Button onClick={() => handleSend("What's a good morning routine?")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
+              "What's a good morning routine?"
             </Button>
-             <Button onClick={() => handleSend("Stop using my phone 1 hour before sleep.")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
-              "No phone before sleep"
+             <Button onClick={() => handleSend("Suggest a new habit for learning.")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
+              "Suggest a learning habit"
             </Button>
         </div>
       </div>

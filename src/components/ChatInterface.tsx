@@ -23,23 +23,10 @@ export function ChatInterface() {
 
   useEffect(() => {
     // Automatically display a welcome message with an example.
-    const getInitialMessage = async () => {
-      setIsLoading(true);
-      const examplePrompt = "Suggest me 3 healthy daily habits";
-      const userMessage: ChatMessage = { role: 'user', content: examplePrompt };
-      setMessages([userMessage]);
-      try {
-        const result = await getAICoachResponse({ userInput: examplePrompt, habits });
-        const assistantMessage: ChatMessage = { role: 'assistant', content: result.response };
-        setMessages(prev => [...prev, assistantMessage]);
-      } catch (error) {
-        setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I had trouble with that request." }]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    if (messages.length === 0) {
-      getInitialMessage();
+    if (messages.length === 0 && !isLoading) {
+      setMessages([
+        { role: 'assistant', content: "Welcome to your AI Coach! Ask me for advice, or tell me to 'add a habit to meditate daily'." }
+      ]);
     }
   }, []); // Runs only once on component mount
 
@@ -71,15 +58,13 @@ export function ChatInterface() {
       setMessages(prev => [...prev, assistantMessage]);
 
       if (result.updatedHabits && result.updatedHabits.length > 0) {
-        // Merge new/updated habits with existing ones
-        const updatedHabitIds = new Set(result.updatedHabits.map(h => h.id));
-        const existingHabitsToKeep = habits.filter(h => !updatedHabitIds.has(h.id));
-        const newFullHabitList = [...existingHabitsToKeep, ...result.updatedHabits] as Habit[];
+        // Since the flow now generates IDs, we can just merge them.
+        const newFullHabitList = [...habits, ...result.updatedHabits] as Habit[];
         setHabits(newFullHabitList);
 
         toast({
-          title: "Habits Updated!",
-          description: `The AI has added or updated ${result.updatedHabits.length} habit(s) for you.`,
+          title: "Habit Added!",
+          description: `The AI has added "${result.updatedHabits[0].title}" to your list.`,
         });
       }
 

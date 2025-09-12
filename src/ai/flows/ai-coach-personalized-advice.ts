@@ -54,8 +54,8 @@ User's request: "{{userInput}}"
 
 Based on the user's request:
 1.  Provide a conversational and encouraging response in the 'response' field.
-2.  If the user asks to add, create, or set a new habit, define it in the 'updatedHabits' array.
-3.  Infer the category and frequency if not specified, but default to 'daily' for frequency.
+2.  If the user asks to "add", "create", or "set" a new habit, define it as a valid JSON object in the 'updatedHabits' array.
+3.  Infer the category and frequency if not specified. Default frequency to 'daily' and category to 'learning'.
 4.  Do not modify existing habits unless explicitly asked.
 5.  If you are just providing advice or answering a question, the 'updatedHabits' array should be empty or omitted.
 `,
@@ -68,7 +68,21 @@ const personalizedAdviceFlow = ai.defineFlow(
     outputSchema: PersonalizedAdviceOutputSchema,
   },
   async (input) => {
-    const { output } = await habitPrompt(input);
+    // Generate a unique ID for any new habits
+    const processedInput = {
+      ...input,
+      userInput: input.userInput
+    };
+
+    const { output } = await habitPrompt(processedInput);
+    
+    if (output && output.updatedHabits) {
+      output.updatedHabits = output.updatedHabits.map(habit => ({
+        ...habit,
+        id: habit.id || `habit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      }));
+    }
+
     return output!;
   }
 );

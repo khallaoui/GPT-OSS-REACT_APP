@@ -1,25 +1,23 @@
 'use server';
 
-import { getGeminiResponse } from '@/lib/gemini';
+import { getPersonalizedAdvice as getPersonalizedAdviceFlow } from '@/ai/flows/ai-coach-personalized-advice';
+import { generateDailyPlan as generateDailyPlanFlow } from '@/ai/flows/generate-daily-plan';
+import { improveHabitMethods as improveHabitMethodsFlow } from '@/ai/flows/improve-habit-methods';
 
 // This is a simple wrapper for the AI call to be used in client components.
 export async function getPersonalizedAdvice(input: { userInput: string }): Promise<{ response: string; }> {
   try {
-    const result = await getGeminiResponse(input.userInput);
-    return { response: result };
+    const result = await getPersonalizedAdviceFlow(input);
+    return { response: result.response };
   } catch (error) {
     console.error("Error in getPersonalizedAdvice:", error);
     return { response: "I'm sorry, but I couldn't get a response. Please try again." };
   }
 }
 
-// Keeping these functions to avoid breaking other components for now.
-// They can be removed if HabitTracker and GoalManager are fully deprecated.
-export async function generateDailyPlan(input: any): Promise<string> {
-  const goalTitles = input.userGoals.join(', ');
-  const prompt = `Create a comprehensive daily plan for someone with these goals: ${goalTitles}. Make it realistic and time-specific.`;
+export async function generateDailyPlan(input: { userGoals: string[] }): Promise<string> {
   try {
-    const result = await getGeminiResponse(prompt);
+    const result = await generateDailyPlanFlow(input);
     return result;
   } catch (error) {
     console.error("Error in generateDailyPlan:", error);
@@ -27,10 +25,9 @@ export async function generateDailyPlan(input: any): Promise<string> {
   }
 }
 
-export async function improveHabitMethods(input: any): Promise<string> {
-  const prompt = `You are an AI habit coach. A user has the habit '${input.habitName}' and currently does it like this: ${input.currentMethod}. Please suggest 3 improved methods.`;
+export async function improveHabitMethods(input: { habitName: string, currentMethod: string }): Promise<string> {
   try {
-    const result = await getGeminiResponse(prompt);
+    const result = await improveHabitMethodsFlow(input);
     return result;
   } catch (error) {
     console.error("Error in improveHabitMethods:", error);

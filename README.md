@@ -29,7 +29,7 @@ The application uses an AI model served via an API. The core logic resides in a 
 
 -   **Framework:** Next.js with React
 -   **Language:** TypeScript
--   **AI Model:** GPT-4o-mini via OpenRouter API
+-   **AI Model:** openai/gpt-oss-20b via OpenRouter API
 -   **Styling:** Tailwind CSS with ShadCN UI components
 -   **Deployment:** Firebase App Hosting
 

@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlusCircle, Flame, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { improveHabitMethods } from '@/app/actions';
+import { getHabitSuggestions } from '@/app/actions';
 import type { Habit } from '@/lib/types';
 
 
@@ -30,9 +30,9 @@ export function HabitTracker() {
     });
   };
 
-  const getAIHabitSuggestion = async (habitName: string, currentMethod: string) => {
+  const handleGetAISuggestions = async (habitName: string, currentMethod: string) => {
     toast({ title: '🤖 AI Thinking...', description: 'Generating suggestions to improve your habit.' });
-    const suggestions = await improveHabitMethods({ habitName, currentMethod });
+    const suggestions = await getHabitSuggestions({ habitName, currentMethod });
     toast({
       title: `✨ Suggestions for "${habitName}"`,
       description: <pre className="whitespace-pre-wrap font-sans">{suggestions}</pre>,
@@ -82,7 +82,7 @@ export function HabitTracker() {
                                 <Flame className={`w-4 h-4 ${habit.streak > 0 ? 'text-amber-500' : ''}`} />
                                 <span>{habit.streak} day streak</span>
                             </div>
-                           <Button variant="ghost" size="sm" onClick={() => getAIHabitSuggestion(habit.title, habit.description || '')}>
+                           <Button variant="ghost" size="sm" onClick={() => handleGetAISuggestions(habit.title, habit.description || '')}>
                                 Improve with AI
                             </Button>
                         </div>

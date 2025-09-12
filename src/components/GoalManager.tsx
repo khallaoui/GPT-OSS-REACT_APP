@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { PlusCircle, Target, Trophy, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { generateDailyPlan } from '@/app/actions';
+import { getDailyPlan } from '@/app/actions';
 
 export function GoalManager() {
   const { goals, addGoal, updateGoalProgress } = useAppContext();
@@ -27,7 +27,7 @@ export function GoalManager() {
     }
     toast({ title: '🤖 AI is crafting your plan...', description: 'This might take a moment.' });
     const goalTitles = goals.map(g => g.title);
-    const plan = await generateDailyPlan({ userGoals: goalTitles });
+    const plan = await getDailyPlan({ userGoals: goalTitles });
     toast({
       title: '📅 Your AI-Generated Daily Plan',
       description: <pre className="mt-2 w-full rounded-md bg-slate-950 p-4"><code className="text-white whitespace-pre-wrap">{plan}</code></pre>,

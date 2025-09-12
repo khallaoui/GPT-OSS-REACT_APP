@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { getPersonalizedAdvice } from '@/app/actions';
-import type { ChatMessage } from '@/lib/types';
+import { getAICoachResponse } from '@/app/actions';
+import { useAppContext } from '@/context/AppContext';
+import type { ChatMessage, Habit } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,12 +11,15 @@ import { Send, Sparkles } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { AppLogo } from '@/components/icons';
 import ReactMarkdown from 'react-markdown';
+import { useToast } from '@/hooks/use-toast';
 
 export function ChatInterface() {
+  const { habits, setHabits } = useAppContext();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Automatically display a welcome message with an example.
@@ -25,7 +29,7 @@ export function ChatInterface() {
       const userMessage: ChatMessage = { role: 'user', content: examplePrompt };
       setMessages([userMessage]);
       try {
-        const result = await getPersonalizedAdvice({ userInput: examplePrompt });
+        const result = await getAICoachResponse({ userInput: examplePrompt, habits });
         const assistantMessage: ChatMessage = { role: 'assistant', content: result.response };
         setMessages(prev => [...prev, assistantMessage]);
       } catch (error) {
@@ -58,14 +62,28 @@ export function ChatInterface() {
     setIsLoading(true);
 
     try {
-      const result = await getPersonalizedAdvice({
+      const result = await getAICoachResponse({
         userInput: userMessageContent,
+        habits: habits,
       });
 
       const assistantMessage: ChatMessage = {role: 'assistant', content: result.response};
       setMessages(prev => [...prev, assistantMessage]);
 
-    } catch (error) {
+      if (result.updatedHabits && result.updatedHabits.length > 0) {
+        // Merge new/updated habits with existing ones
+        const updatedHabitIds = new Set(result.updatedHabits.map(h => h.id));
+        const existingHabitsToKeep = habits.filter(h => !updatedHabitIds.has(h.id));
+        const newFullHabitList = [...existingHabitsToKeep, ...result.updatedHabits] as Habit[];
+        setHabits(newFullHabitList);
+
+        toast({
+          title: "Habits Updated!",
+          description: `The AI has added or updated ${result.updatedHabits.length} habit(s) for you.`,
+        });
+      }
+
+    } catch (error) G {
       console.error('Error getting response:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       const errorResponse: ChatMessage = {
@@ -86,7 +104,7 @@ export function ChatInterface() {
             <div className="text-center p-8 rounded-lg">
                 <Sparkles className="mx-auto h-12 w-12 text-primary" />
                 <h2 className="mt-4 text-2xl font-bold font-headline">Your AI Assistant</h2>
-                <p className="mt-2 text-muted-foreground">Ask me anything.</p>
+                <p className="mt-2 text-muted-foreground">Ask me anything, including to add new habits!</p>
             </div>
           )}
           {messages.map((msg, index) => (
@@ -131,7 +149,7 @@ export function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask anything..."
+            placeholder="Ask anything, or 'add a habit to meditate daily'"
             disabled={isLoading}
             className="flex-1"
           />

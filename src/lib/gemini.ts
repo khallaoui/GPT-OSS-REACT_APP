@@ -62,8 +62,11 @@ Example habit object: { "title": "Run three times a week", "description": "Morni
       safetySettings,
     });
 
-    const jsonResponse = result.response.text();
-    const parsedResult = JSON.parse(jsonResponse);
+    // Clean the response text to ensure it's valid JSON
+    let responseText = result.response.text();
+    responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    const parsedResult = JSON.parse(responseText);
 
     const output: PersonalizedAdviceOutput = {
       response: parsedResult.response || "I'm not sure how to respond to that.",
@@ -87,7 +90,7 @@ Example habit object: { "title": "Run three times a week", "description": "Morni
     return output;
   } catch (error) {
     console.error("Error getting personalized advice:", error);
-    return { response: "Sorry, I had trouble processing that request. The AI may have returned an invalid format." };
+    return { response: "Sorry, I had trouble processing that request. The AI may have returned an invalid format or the API key may be missing." };
   }
 }
 

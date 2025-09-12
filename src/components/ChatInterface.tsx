@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { getPersonalizedAdvice } from '@/app/actions';
-import type { ChatMessage, Habit } from '@/lib/types';
+import type { ChatMessage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,14 +10,35 @@ import { Send, Sparkles } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { AppLogo } from '@/components/icons';
 import ReactMarkdown from 'react-markdown';
-import { useAppContext } from '@/context/AppContext';
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  
+
+  useEffect(() => {
+    // Automatically display a welcome message with an example.
+    const getInitialMessage = async () => {
+      setIsLoading(true);
+      const examplePrompt = "Suggest me 3 healthy daily habits";
+      const userMessage: ChatMessage = { role: 'user', content: examplePrompt };
+      setMessages([userMessage]);
+      try {
+        const result = await getPersonalizedAdvice({ userInput: examplePrompt });
+        const assistantMessage: ChatMessage = { role: 'assistant', content: result.response };
+        setMessages(prev => [...prev, assistantMessage]);
+      } catch (error) {
+        setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I had trouble with that request." }]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (messages.length === 0) {
+      getInitialMessage();
+    }
+  }, []); // Runs only once on component mount
+
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({
@@ -41,8 +62,8 @@ export function ChatInterface() {
         userInput: userMessageContent,
       });
 
-      const assistantMessage = result.response;
-      setMessages(prev => [...prev, {role: 'assistant', content: assistantMessage}]);
+      const assistantMessage: ChatMessage = {role: 'assistant', content: result.response};
+      setMessages(prev => [...prev, assistantMessage]);
 
     } catch (error) {
       console.error('Error getting response:', error);
@@ -61,7 +82,7 @@ export function ChatInterface() {
     <div className="max-w-3xl mx-auto h-[70vh] flex flex-col">
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-6">
-          {messages.length === 0 && (
+          {messages.length === 0 && !isLoading && (
             <div className="text-center p-8 rounded-lg">
                 <Sparkles className="mx-auto h-12 w-12 text-primary" />
                 <h2 className="mt-4 text-2xl font-bold font-headline">Your AI Assistant</h2>
@@ -117,17 +138,6 @@ export function ChatInterface() {
           <Button onClick={() => handleSend()} disabled={isLoading} size="icon">
             <Send className="w-4 h-4" />
           </Button>
-        </div>
-        <div className="flex flex-wrap gap-2 mt-3">
-            <Button onClick={() => handleSend("How can I be more consistent with my habits?")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
-              "How can I be more consistent?"
-            </Button>
-            <Button onClick={() => handleSend("What's a good morning routine?")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
-              "What's a good morning routine?"
-            </Button>
-             <Button onClick={() => handleSend("Suggest a new habit for learning.")} variant="outline" size="sm" className="text-xs" disabled={isLoading}>
-              "Suggest a learning habit"
-            </Button>
         </div>
       </div>
     </div>

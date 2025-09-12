@@ -1,6 +1,9 @@
 'use server';
 
-import { getPersonalizedAdvice, generateDailyPlan, improveHabitMethods } from '@/ai/flows';
+import { getPersonalizedAdvice } from '@/ai/flows/ai-coach-personalized-advice';
+import { generateDailyPlan } from '@/ai/flows/generate-daily-plan';
+import { improveHabitMethods } from '@/ai/flows/improve-habit-methods';
+
 import type { PersonalizedAdviceInput, PersonalizedAdviceOutput } from '@/ai/flows/ai-coach-personalized-advice';
 import type { GenerateDailyPlanInput } from '@/ai/flows/generate-daily-plan';
 import type { ImproveHabitMethodsInput } from '@/ai/flows/improve-habit-methods';

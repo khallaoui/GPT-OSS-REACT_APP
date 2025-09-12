@@ -83,7 +83,7 @@ export function ChatInterface() {
         });
       }
 
-    } catch (error) G {
+    } catch (error) {
       console.error('Error getting response:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       const errorResponse: ChatMessage = {
@@ -160,4 +160,4 @@ export function ChatInterface() {
       </div>
     </div>
   );
-};
+}

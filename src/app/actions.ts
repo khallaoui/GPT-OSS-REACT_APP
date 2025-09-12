@@ -1,14 +1,12 @@
 'use server';
 
-import { getPersonalizedAdvice as getPersonalizedAdviceFlow } from '@/ai/flows/ai-coach-personalized-advice';
-import { generateDailyPlan as generateDailyPlanFlow } from '@/ai/flows/generate-daily-plan';
-import { improveHabitMethods as improveHabitMethodsFlow } from '@/ai/flows/improve-habit-methods';
+import { getGeminiResponse } from '@/lib/gemini';
 
 // This is a simple wrapper for the AI call to be used in client components.
 export async function getPersonalizedAdvice(input: { userInput: string }): Promise<{ response: string; }> {
   try {
-    const result = await getPersonalizedAdviceFlow(input);
-    return { response: result.response };
+    const result = await getGeminiResponse(input.userInput);
+    return { response: result };
   } catch (error) {
     console.error("Error in getPersonalizedAdvice:", error);
     return { response: "I'm sorry, but I couldn't get a response. Please try again." };
@@ -17,7 +15,10 @@ export async function getPersonalizedAdvice(input: { userInput: string }): Promi
 
 export async function generateDailyPlan(input: { userGoals: string[] }): Promise<string> {
   try {
-    const result = await generateDailyPlanFlow(input);
+    const prompt = `Create a comprehensive daily plan for someone with these goals: ${input.userGoals.join(', ')}.
+Include morning routine, work/study blocks, breaks, evening routine, and self-care activities.
+Make it realistic and time-specific.`;
+    const result = await getGeminiResponse(prompt);
     return result;
   } catch (error) {
     console.error("Error in generateDailyPlan:", error);
@@ -27,7 +28,9 @@ export async function generateDailyPlan(input: { userGoals: string[] }): Promise
 
 export async function improveHabitMethods(input: { habitName: string, currentMethod: string }): Promise<string> {
   try {
-    const result = await improveHabitMethodsFlow(input);
+    const prompt = `You are an AI habit coach. A user has the habit '${input.habitName}' and currently does it like this: ${input.currentMethod}.\n\
+Please suggest 3 improved methods or techniques to make this habit more effective, sustainable, and rewarding.\nProvide specific, actionable suggestions.\n`;
+    const result = await getGeminiResponse(prompt);
     return result;
   } catch (error) {
     console.error("Error in improveHabitMethods:", error);

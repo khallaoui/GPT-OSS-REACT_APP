@@ -14,7 +14,7 @@ import ReactMarkdown from 'react-markdown';
 import { useToast } from '@/hooks/use-toast';
 
 export function ChatInterface() {
-  const { habits, setHabits, addHabit } = useAppContext();
+  const { habits, addHabit } = useAppContext();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -54,13 +54,11 @@ export function ChatInterface() {
         habits: habits,
       });
 
-      const assistantMessage: ChatMessage = {role: 'assistant', content: result.response};
+      const assistantMessage: ChatMessage = { role: 'assistant', content: result.response };
       setMessages(prev => [...prev, assistantMessage]);
 
-      if (result.updatedHabits && result.updatedHabits.length > 0) {
-        // Use the existing context function to add habits
+      if (result.updatedHabits && Array.isArray(result.updatedHabits) && result.updatedHabits.length > 0) {
         result.updatedHabits.forEach(newHabit => {
-            // The AI returns a partial habit, the context adds the rest
             const habitData = {
               title: newHabit.title,
               description: newHabit.description,

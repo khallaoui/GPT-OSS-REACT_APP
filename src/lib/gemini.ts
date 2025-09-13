@@ -5,9 +5,9 @@ import type { PersonalizedAdviceInput, PersonalizedAdviceOutput, Habit } from '@
 
 const MODEL_NAME = 'gemini-1.5-flash-latest';
 
-// Ensure the API key is available
+// Ensure the API key is available. If not, the app will throw an error.
 if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY is not set in the environment variables');
+  throw new Error('GEMINI_API_KEY environment variable is not set.');
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -83,27 +83,37 @@ Do not add, modify or remove any other fields. The entire output must be a singl
     });
     
     const responseText = result.response.text();
-    const parsedResponse = JSON.parse(responseText) as { response: string, updatedHabits?: Omit<Habit, 'id' | 'type' | 'progress' | 'createdAt' | 'completed' | 'streak'>[] };
-
-    const newHabitsWithIds = (parsedResponse.updatedHabits || []).map(habit => ({
-      ...habit,
-      id: `habit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      type: 'habit' as const,
-      progress: 0,
-      createdAt: new Date().toISOString(),
-      completed: false,
-      streak: 0,
-    }));
     
-    return {
-      response: parsedResponse.response,
-      updatedHabits: newHabitsWithIds,
-    };
+    // Add robust parsing with a try-catch block
+    try {
+      const parsedResponse = JSON.parse(responseText) as { response: string, updatedHabits?: Omit<Habit, 'id' | 'type' | 'progress' | 'createdAt' | 'completed' | 'streak'>[] };
+
+      const newHabitsWithIds = (parsedResponse.updatedHabits || []).map(habit => ({
+        ...habit,
+        id: `habit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        type: 'habit' as const,
+        progress: 0,
+        createdAt: new Date().toISOString(),
+        completed: false,
+        streak: 0,
+      }));
+      
+      return {
+        response: parsedResponse.response,
+        updatedHabits: newHabitsWithIds,
+      };
+    } catch (e) {
+      console.error("Failed to parse JSON response from Gemini:", responseText, e);
+      return {
+        response: "Sorry, I received an unexpected response from the AI. Let's try that again.",
+        updatedHabits: [],
+      };
+    }
 
   } catch (error) {
     console.error("Error calling Gemini API:", error);
     return {
-      response: "Sorry, I had trouble understanding that. Could you try rephrasing?",
+      response: "Sorry, I had trouble connecting to the AI service. Please check your API key and try again.",
       updatedHabits: [],
     };
   }

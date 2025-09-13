@@ -59,11 +59,12 @@ export function ChatInterface() {
 
       if (result.updatedHabits && Array.isArray(result.updatedHabits) && result.updatedHabits.length > 0) {
         result.updatedHabits.forEach(newHabit => {
+            // The AI response might not have all fields, so we create a complete habit object.
             const habitData = {
               title: newHabit.title,
-              description: newHabit.description,
-              category: newHabit.category,
-              frequency: newHabit.frequency
+              description: newHabit.description || '',
+              category: newHabit.category || 'learning',
+              frequency: newHabit.frequency || 'daily'
             };
             addHabit(habitData);
             toast({
@@ -80,6 +81,11 @@ export function ChatInterface() {
         content: "I'm sorry, but I couldn't get a response. Please try again."
       };
       setMessages(prev => [...prev, errorResponse]);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to get a response from the AI. Please check your API key and try again.',
+      });
     } finally {
       setIsLoading(false);
     }

@@ -60,7 +60,14 @@ export function ChatInterface() {
       if (result.updatedHabits && result.updatedHabits.length > 0) {
         // Use the existing context function to add habits
         result.updatedHabits.forEach(newHabit => {
-            addHabit(newHabit);
+            // The AI returns a partial habit, the context adds the rest
+            const habitData = {
+              title: newHabit.title,
+              description: newHabit.description,
+              category: newHabit.category,
+              frequency: newHabit.frequency
+            };
+            addHabit(habitData);
             toast({
               title: "Habit Added!",
               description: `The AI has added "${newHabit.title}" to your list.`,

@@ -5,7 +5,6 @@ import type { PersonalizedAdviceInput, PersonalizedAdviceOutput, Habit } from '@
 
 const MODEL_NAME = 'gemini-1.5-flash-latest';
 
-// Ensure the API key is available. If not, the app will throw an error.
 if (!process.env.GEMINI_API_KEY) {
   throw new Error('GEMINI_API_KEY environment variable is not set.');
 }
@@ -13,9 +12,6 @@ if (!process.env.GEMINI_API_KEY) {
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({
   model: MODEL_NAME,
-  generationConfig: {
-    responseMimeType: 'application/json',
-  },
 });
 
 const generationConfig = {
@@ -33,47 +29,18 @@ const safetySettings = [
 ];
 
 export async function getAIResponse(input: PersonalizedAdviceInput): Promise<PersonalizedAdviceOutput> {
-  const systemPrompt = `You are an AI life coach. Your role is to provide advice, answer questions, and help users manage their habits. Your response MUST be valid JSON.
+  const systemPrompt = `You are an AI Coach. Your role is to provide encouraging advice and help users improve their habits.
 
-The user's current habits are:
-\`\`\`json
-${JSON.stringify(input.habits, null, 2)}
-\`\`\`
+You must follow these rules strictly:
+1.  **Always speak in plain, friendly text only.**
+2.  **Do not include JSON, brackets, or any technical formatting like "response" or "updatedHabits".**
+3.  Reply with a natural sentence that can be displayed directly in a chat, as if you were having a real conversation.
 
-The user's request is: "${input.userInput}"
+Here is the user's current context:
+- Their habits are: ${JSON.stringify(input.habits.map(h => h.title))}
+- Their request is: "${input.userInput}"
 
-Based on the user's request, you must return a JSON object with two properties:
-1. "response": (string) A conversational and encouraging response to the user.
-2. "updatedHabits": (array) An array of habit objects. If the user asks to "add", "create", or "set" a new habit, define it here. This should be an empty array if no new habit is created.
-
-A habit object must contain:
-- "title": (string) The title of the habit.
-- "description": (string) A brief description.
-- "category": (string) Infer a category from this list: 'health', 'learning', 'productivity', 'morning', 'evening', 'social', 'mindfulness', 'financial'. Default to 'learning'.
-- "frequency": (string) 'daily', 'weekly', 'monthly', or 'one-time'. Default to 'daily'.
-
-Example for adding a habit: User says "add a habit to drink water".
-Your response should be:
-{
-  "response": "Great idea! I've added 'Drink 8 glasses of water daily' to your health habits.",
-  "updatedHabits": [
-    {
-      "title": "Drink 8 glasses of water daily",
-      "description": "Stay hydrated throughout the day.",
-      "category": "health",
-      "frequency": "daily"
-    }
-  ]
-}
-
-Example for giving advice: User says "how can I be more productive?".
-Your response should be:
-{
-  "response": "To be more productive, try using the Pomodoro Technique. It involves working in focused 25-minute intervals with short breaks in between. Would you like to add this as a habit?",
-  "updatedHabits": []
-}
-
-Do not add any other fields. The entire output must be a single, valid JSON object.`;
+Now, provide a helpful and conversational response.`;
 
   try {
     const result = await model.generateContent({
@@ -84,35 +51,12 @@ Do not add any other fields. The entire output must be a single, valid JSON obje
     
     const responseText = result.response.text();
     
-    // Add robust parsing with a try-catch block
-    try {
-      const parsedResponse = JSON.parse(responseText) as { response: string, updatedHabits?: Omit<Habit, 'id' | 'type' | 'progress' | 'createdAt' | 'completed' | 'streak'>[] };
-
-      // Ensure updatedHabits is at least an empty array
-      const habitsToAdd = parsedResponse.updatedHabits || [];
-
-      const newHabitsWithIds: Habit[] = habitsToAdd.map(habit => ({
-        ...habit,
-        id: `habit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        type: 'habit' as const,
-        progress: 0,
-        createdAt: new Date().toISOString(),
-        completed: false,
-        streak: 0,
-      }));
-      
-      return {
-        response: parsedResponse.response,
-        updatedHabits: newHabitsWithIds,
-      };
-    } catch (e) {
-      console.error("Failed to parse JSON response from Gemini:", responseText, e);
-      // If parsing fails, return the raw text as the response.
-      return {
-        response: responseText,
-        updatedHabits: [],
-      };
-    }
+    // Since we now expect plain text, we return it directly.
+    // The "updatedHabits" feature is disabled by this change, but it ensures the chat is clean.
+    return {
+      response: responseText,
+      updatedHabits: [],
+    };
 
   } catch (error) {
     console.error("Error calling Gemini API:", error);

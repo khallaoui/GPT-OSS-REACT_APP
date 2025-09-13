@@ -7,15 +7,6 @@ import type { PersonalizedAdviceInput, PersonalizedAdviceOutput } from '@/lib/ty
 export async function getAICoachResponse(
   input: PersonalizedAdviceInput
 ): Promise<PersonalizedAdviceOutput> {
-  try {
-    const result = await getAIResponse(input);
-    return result;
-  } catch (error) {
-    console.error('Error in getAIResponse:', error);
-    // Return a structured error response
-    return {
-      response: "I'm sorry, but I couldn't get a response. Please try again.",
-      updatedHabits: [] 
-    };
-  }
+  // The try-catch is now handled inside getAIResponse, making this action a clean pass-through.
+  return getAIResponse(input);
 }

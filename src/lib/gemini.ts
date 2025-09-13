@@ -44,15 +44,15 @@ The user's request is: "${input.userInput}"
 
 Based on the user's request, you must return a JSON object with two properties:
 1. "response": (string) A conversational and encouraging response to the user.
-2. "updatedHabits": (array) An array of habit objects. If the user asks to "add", "create", or "set" a new habit, define it here. Otherwise, this should be an empty array.
+2. "updatedHabits": (array) An array of habit objects. If the user asks to "add", "create", or "set" a new habit, define it here. This should be an empty array if no new habit is created.
 
 A habit object must contain:
 - "title": (string) The title of the habit.
 - "description": (string) A brief description.
-- "category": (string) Infer a category from the list: 'health', 'learning', 'productivity', 'morning', 'evening', 'social', 'mindfulness', 'financial'. Default to 'learning'.
+- "category": (string) Infer a category from this list: 'health', 'learning', 'productivity', 'morning', 'evening', 'social', 'mindfulness', 'financial'. Default to 'learning'.
 - "frequency": (string) 'daily', 'weekly', 'monthly', or 'one-time'. Default to 'daily'.
 
-Example 1: User says "add a habit to drink water".
+Example for adding a habit: User says "add a habit to drink water".
 Your response should be:
 {
   "response": "Great idea! I've added 'Drink 8 glasses of water daily' to your health habits.",
@@ -66,14 +66,14 @@ Your response should be:
   ]
 }
 
-Example 2: User says "how can I be more productive?".
+Example for giving advice: User says "how can I be more productive?".
 Your response should be:
 {
   "response": "To be more productive, try using the Pomodoro Technique. It involves working in focused 25-minute intervals with short breaks in between. Would you like to add this as a habit?",
   "updatedHabits": []
 }
 
-Do not add, modify or remove any other fields. The entire output must be a single, valid JSON object.`;
+Do not add any other fields. The entire output must be a single, valid JSON object.`;
 
   try {
     const result = await model.generateContent({
@@ -88,7 +88,10 @@ Do not add, modify or remove any other fields. The entire output must be a singl
     try {
       const parsedResponse = JSON.parse(responseText) as { response: string, updatedHabits?: Omit<Habit, 'id' | 'type' | 'progress' | 'createdAt' | 'completed' | 'streak'>[] };
 
-      const newHabitsWithIds = (parsedResponse.updatedHabits || []).map(habit => ({
+      // Ensure updatedHabits is at least an empty array
+      const habitsToAdd = parsedResponse.updatedHabits || [];
+
+      const newHabitsWithIds: Habit[] = habitsToAdd.map(habit => ({
         ...habit,
         id: `habit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         type: 'habit' as const,
@@ -104,8 +107,9 @@ Do not add, modify or remove any other fields. The entire output must be a singl
       };
     } catch (e) {
       console.error("Failed to parse JSON response from Gemini:", responseText, e);
+      // If parsing fails, return the raw text as the response.
       return {
-        response: "Sorry, I received an unexpected response from the AI. Let's try that again.",
+        response: responseText,
         updatedHabits: [],
       };
     }

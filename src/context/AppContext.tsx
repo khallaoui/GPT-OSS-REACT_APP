@@ -6,8 +6,7 @@ import type { Habit, Goal } from '@/lib/types';
 interface AppContextType {
   habits: Habit[];
   goals: Goal[];
-  setHabits: (habits: Habit[]) => void;
-  addHabit: (habit: Omit<Habit, 'id' | 'createdAt' | 'progress' | 'type'>) => void;
+  addHabit: (habit: Omit<Habit, 'id' | 'createdAt' | 'progress' | 'type' | 'completed' | 'streak'>) => void;
   toggleHabit: (habitId: string) => void;
   addGoal: (goal: Omit<Goal, 'id' | 'progress'>) => void;
   updateGoalProgress: (goalId: string, progress: number) => void;
@@ -36,18 +35,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [habits, setHabitsState] = useState<Habit[]>(initialHabits);
   const [goals, setGoals] = useState<Goal[]>(initialGoals);
 
-  const setHabits = (newHabits: Habit[]) => {
-    // Add compatibility properties if they are missing
-    const compatibleHabits = newHabits.map(h => ({
-      ...h,
-      category: h.category || 'learning', // default category
-      completed: h.completed || false,
-      streak: h.streak || 0,
-    }));
-    setHabitsState(compatibleHabits);
-  }
-
-  const addHabit = (habitData: Omit<Habit, 'id' | 'createdAt' | 'progress' | 'type' | 'completed' | 'streak'> & { category: string }) => {
+  const addHabit = (habitData: Omit<Habit, 'id' | 'createdAt' | 'progress' | 'type' | 'completed' | 'streak'>) => {
     const newHabit: Habit = {
       ...habitData,
       id: crypto.randomUUID(),
@@ -113,7 +101,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     habits,
     goals,
-    setHabits,
     addHabit,
     toggleHabit,
     addGoal,

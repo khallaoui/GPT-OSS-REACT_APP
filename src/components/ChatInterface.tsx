@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getAICoachResponse } from '@/app/actions';
 import { useAppContext } from '@/context/AppContext';
-import type { ChatMessage, Habit, PersonalizedAdviceInput } from '@/lib/types';
+import type { ChatMessage, Habit } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,7 +14,7 @@ import ReactMarkdown from 'react-markdown';
 import { useToast } from '@/hooks/use-toast';
 
 export function ChatInterface() {
-  const { habits, setHabits } = useAppContext();
+  const { habits, setHabits, addHabit } = useAppContext();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -58,19 +58,21 @@ export function ChatInterface() {
       setMessages(prev => [...prev, assistantMessage]);
 
       if (result.updatedHabits && result.updatedHabits.length > 0) {
-        setHabits([...habits, ...result.updatedHabits]);
-        toast({
-          title: "Habit Added!",
-          description: `The AI has added "${result.updatedHabits[0].title}" to your list.`,
+        // Use the existing context function to add habits
+        result.updatedHabits.forEach(newHabit => {
+            addHabit(newHabit);
+            toast({
+              title: "Habit Added!",
+              description: `The AI has added "${newHabit.title}" to your list.`,
+            });
         });
       }
 
     } catch (error) {
       console.error('Error getting response:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       const errorResponse: ChatMessage = {
         role: 'assistant',
-        content: `I'm sorry, but I couldn't get a response. Please try again.`
+        content: "I'm sorry, but I couldn't get a response. Please try again."
       };
       setMessages(prev => [...prev, errorResponse]);
     } finally {

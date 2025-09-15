@@ -1,6 +1,7 @@
 'use server';
 
-import { getAIResponse } from '@/lib/gemini';
+import { getAIResponse } from '@/lib/gptoss';
+// import { getAIResponse } from '@/lib/gemini';
 import type { PersonalizedAdviceInput, PersonalizedAdviceOutput } from '@/lib/types';
 
 // This is a simple wrapper for the AI call to be used in client components.

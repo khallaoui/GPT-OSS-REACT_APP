@@ -1,6 +1,5 @@
 
 "use client";
-
 import React, { useState, useRef, useEffect } from 'react';
 import { getAICoachResponse } from '@/app/actions';
 import { useAppContext } from '@/context/AppContext';

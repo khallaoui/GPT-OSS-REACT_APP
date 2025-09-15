@@ -1,69 +1,369 @@
 # GPT-Life: AI Personality Coach
 
-GPT-Life is a personalized coaching application designed for the OpenAI Open Model Hackathon. It leverages an open-source model to act as a life coach, helping users build better habits, manage goals, and improve their overall well-being through conversational AI.
+A modern web application that leverages artificial intelligence to provide personalized life coaching, habit tracking, and goal management. Built with Next.js and powered by OpenAI's GPT-OSS model, GPT-Life helps users develop positive habits, achieve their goals, and improve their overall well-being through intelligent conversational guidance.
 
-## Hackathon Submission Details
+## Table of Contents
 
-- **Project Category:** For Humanity
-- **Reasoning:** This project is submitted under the "For Humanity" category because its core mission is to provide an accessible and supportive tool for personal development. By helping users cultivate positive habits and a growth mindset, GPT-Life aims to make a tangible, positive impact on their daily lives and long-term happiness.
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Integration](#api-integration)
+- [Development](#development)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Project Description
+## Features
 
-GPT-Life is a Next.js web application that serves as an AI-powered personality and habit coach. It provides a simple, intuitive, and encouraging environment where users can define their aspirations, create tangible habits, and track their progress over time.
+### AI-Powered Coaching
+- **Conversational Interface**: Natural language interaction with an AI coach
+- **Intelligent Habit Creation**: Describe habits in plain English and let AI structure them
+- **Personalized Advice**: Get tailored suggestions for habit improvement and goal achievement
+- **Context-Aware Responses**: AI understands your current habits and goals for relevant guidance
 
-The application is built around three main features:
+### Habit Management
+- **Categorized Tracking**: Organize habits across 8 life categories
+- **Progress Visualization**: Track completion rates and streak statistics
+- **Smart Suggestions**: AI-powered recommendations for habit consistency
+- **Flexible Scheduling**: Support for daily, weekly, monthly, and one-time habits
 
-1.  **AI Coach (Chat):** A conversational interface where users can interact with the AI assistant in natural language. Users can describe habits they want to form (e.g., "I want to run three times a week"), and the AI will parse this request and add the structured habit to the user's list.
-2.  **Habit Tracker:** A dashboard where all user-defined habits are displayed, categorized for clarity (e.g., Morning Routine, Health & Wellness). Users can mark habits as complete, track their streaks, and request AI-powered suggestions for how to improve their routines.
-3.  **Goal Manager:** A section for defining and tracking long-term goals. The AI can generate a daily action plan based on these goals to help users break down large ambitions into manageable steps.
+### Goal Management
+- **Long-term Planning**: Set and track progress toward personal and professional goals
+- **AI-Generated Action Plans**: Get daily schedules based on your goals
+- **Progress Monitoring**: Visual progress tracking with percentage completion
+- **Timeline Management**: Set realistic timelines for goal achievement
 
-## How It Works
+### Analytics Dashboard
+- **Performance Metrics**: View habit completion rates and longest streaks
+- **Visual Charts**: Interactive pie charts and progress bars
+- **Goal Overview**: Quick access to all active goals and their status
+- **Trend Analysis**: Track improvement over time
 
-The application uses an AI model served via an API. The core logic resides in a set of AI flows that are prompted to perform specific tasks:
+## Technology Stack
 
--   **Habit Creation:** When a user describes a new habit, a system prompt instructs the model to parse the user's text and convert it into a structured JSON object representing the new habit. This object is then added to the user's list.
--   **Method Improvement:** Users can ask the AI for advice on how to better stick to a habit. The model receives the habit's details and is prompted to act as a coach, providing actionable, encouraging suggestions.
--   **Daily Plan Generation:** The AI can take a user's list of long-term goals and generate a realistic, time-specific daily schedule to help them make progress.
+### Frontend
+- **Next.js 15.5.3** - React framework with App Router
+- **React 18.3.1** - UI library with hooks and context
+- **TypeScript** - Type-safe JavaScript development
+- **Tailwind CSS** - Utility-first CSS framework
+- **ShadCN UI** - Modern component library
+- **Radix UI** - Accessible component primitives
+- **Recharts** - Data visualization library
+- **Lucide React** - Icon library
 
-## Technical Stack
+### Backend & AI
+- **Next.js Server Actions** - Server-side API handling
+- **OpenRouter API** - AI model access
+- **OpenAI GPT-OSS-20B** - Large language model
+- **TypeScript** - End-to-end type safety
 
--   **Framework:** Next.js with React
--   **Language:** TypeScript
--   **AI Model:** openai/gpt-oss-20b via OpenRouter API
--   **Styling:** Tailwind CSS with ShadCN UI components
--   **Deployment:** Firebase App Hosting
+### Development Tools
+- **ESLint** - Code linting
+- **PostCSS** - CSS processing
+- **Turbopack** - Fast bundling (development)
 
-## Running the Project
+## Architecture
+
+### Project Structure
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── page.tsx           # Main application page
+│   ├── layout.tsx         # Root layout component
+│   ├── actions.ts         # Server actions for AI integration
+│   └── globals.css        # Global styles and CSS variables
+├── components/            # React components
+│   ├── ChatInterface.tsx  # AI chat interface
+│   ├── HabitTracker.tsx   # Habit management
+│   ├── GoalManager.tsx    # Goal tracking
+│   ├── Dashboard.tsx      # Analytics dashboard
+│   └── ui/               # Reusable UI components
+├── context/              # React Context providers
+│   └── AppContext.tsx    # Global state management
+├── lib/                  # Utility libraries
+│   ├── gptoss.ts         # AI API integration
+│   ├── types.ts          # TypeScript definitions
+│   ├── data.ts           # Static data and constants
+│   └── utils.ts          # Helper functions
+└── hooks/                # Custom React hooks
+    └── use-toast.ts      # Toast notification hook
+```
+
+### State Management
+- **React Context API** for global state
+- **Local component state** with React hooks
+- **Server state** managed through Next.js Server Actions
+
+### AI Integration
+- **OpenRouter API** for model access
+- **Structured prompts** for consistent AI responses
+- **JSON parsing** for habit creation and updates
+- **Error handling** with user-friendly fallbacks
+
+## Installation
 
 ### Prerequisites
-- Node.js (v18 or later)
-- An API key from OpenRouter AI
+- Node.js 18.0 or later
+- npm or yarn package manager
+- OpenRouter API account and key
 
-### Setup Instructions
-1.  **Clone the repository:**
-    ```bash
-    git clone [your-repository-url]
-    cd [project-directory]
-    ```
+### Quick Start
 
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/gpt-life.git
+   cd gpt-life
+   ```
 
-3.  **Set up environment variables:**
-    Create a file named `.env` in the root of the project and add your OpenRouter API key:
-    ```
-    OPENROUTER_API_KEY="your_openrouter_api_key_here"
-    ```
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-4.  **Run the development server:**
-    ```bash
-    npm run dev
-    ```
-    The application will be available at `http://localhost:9002`.
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
 
-## Submission Links
+4. **Configure your API key**
+   Edit `.env.local` and add your OpenRouter API key:
+   ```
+   OPENROUTER_API_KEY=your_api_key_here
+   ```
 
--   **Demonstration Video:** [Link to your 3-minute video]
--   **Public Code Repository:** [Link to your public GitHub repository]
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Open your browser**
+   Navigate to `http://localhost:9002`
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+# Required
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+
+# Optional
+NEXT_PUBLIC_APP_URL=http://localhost:9002
+```
+
+### API Configuration
+
+The application uses OpenRouter API to access the GPT-OSS-20B model. To get started:
+
+1. Visit [OpenRouter](https://openrouter.ai/)
+2. Create an account and obtain an API key
+3. Add the key to your environment variables
+
+## Usage
+
+### Getting Started
+
+1. **Launch the application** and navigate to the AI Coach tab
+2. **Start a conversation** by asking for help or describing a habit you want to create
+3. **Add habits** by describing them naturally (e.g., "I want to meditate for 10 minutes every morning")
+4. **Track progress** by checking off completed habits in the Habit Tracker
+5. **Set goals** in the Goal Manager and get AI-generated daily plans
+
+### Key Features
+
+#### AI Coach
+- Ask questions about personal development
+- Request habit improvement suggestions
+- Get motivation and encouragement
+- Describe new habits in natural language
+
+#### Habit Tracker
+- View habits organized by category
+- Mark habits as complete
+- Track streak statistics
+- Get AI suggestions for improvement
+
+#### Goal Manager
+- Set long-term goals with timelines
+- Track progress with visual indicators
+- Generate AI-powered daily action plans
+- Monitor achievement milestones
+
+## API Integration
+
+### OpenRouter API
+
+The application integrates with OpenRouter API to access the GPT-OSS-20B model:
+
+```typescript
+// Example API call structure
+const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+  },
+  body: JSON.stringify({
+    model: "openai/gpt-oss-20b:free",
+    messages: [...],
+    max_tokens: 500,
+    temperature: 0.7
+  })
+});
+```
+
+### Error Handling
+
+The application includes comprehensive error handling:
+- API connection failures
+- Invalid responses
+- Rate limiting
+- User-friendly error messages
+
+## Development
+
+### Available Scripts
+
+```bash
+# Development server with Turbopack
+npm run dev
+
+# Production build
+npm run build
+
+# Start production server
+npm start
+
+# Type checking
+npm run typecheck
+
+# Linting
+npm run lint
+```
+
+### Development Server
+
+The development server runs on port 9002 with Turbopack for fast hot reloading:
+
+```bash
+npm run dev
+```
+
+### Code Structure
+
+- **Components**: Reusable UI components in `src/components/`
+- **Pages**: Next.js pages in `src/app/`
+- **Utilities**: Helper functions in `src/lib/`
+- **Types**: TypeScript definitions in `src/lib/types.ts`
+- **Context**: Global state in `src/context/`
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## Deployment
+
+### Firebase App Hosting
+
+The application is configured for deployment on Firebase App Hosting:
+
+1. **Install Firebase CLI**
+   ```bash
+   npm install -g firebase-tools
+   ```
+
+2. **Login to Firebase**
+   ```bash
+   firebase login
+   ```
+
+3. **Initialize Firebase**
+   ```bash
+   firebase init hosting
+   ```
+
+4. **Build and deploy**
+   ```bash
+   npm run build
+   firebase deploy
+   ```
+
+### Environment Variables
+
+Ensure all required environment variables are set in your deployment environment:
+
+- `OPENROUTER_API_KEY`: Your OpenRouter API key
+- `NEXT_PUBLIC_APP_URL`: Your production URL
+
+### Build Configuration
+
+The application uses Next.js static export for optimal performance:
+
+```typescript
+// next.config.ts
+const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // ... other configurations
+};
+```
+
+## Contributing
+
+We welcome contributions to GPT-Life! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+1. Fork the repository
+2. Clone your fork locally
+3. Install dependencies: `npm install`
+4. Create a feature branch
+5. Make your changes
+6. Run tests: `npm run typecheck`
+7. Submit a pull request
+
+### Code Style
+
+- Use TypeScript for all new code
+- Follow the existing component structure
+- Add proper type definitions
+- Include error handling
+- Write clear commit messages
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- OpenAI for the GPT-OSS model
+- OpenRouter for API access
+- Next.js team for the excellent framework
+- ShadCN UI for the component library
+- The open-source community for inspiration and tools
+
+## Support
+
+If you encounter any issues or have questions:
+
+1. Check the [Issues](https://github.com/yourusername/gpt-life/issues) page
+2. Create a new issue with detailed information
+3. Include steps to reproduce any bugs
+4. Provide your environment details
+
+---
+
+**Built with Next.js, TypeScript, and AI** | **Powered by OpenAI GPT-OSS-20B**

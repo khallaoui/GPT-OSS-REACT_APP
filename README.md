@@ -114,8 +114,8 @@ src/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/gpt-life.git
-   cd gpt-life
+   git clone https://github.com/yourusername/GPT-OSS-REACT_APP.git
+   cd GPT-OSS-REACT_APP
    ```
 
 2. **Install dependencies**

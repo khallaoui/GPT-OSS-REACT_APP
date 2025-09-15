@@ -343,27 +343,5 @@ We welcome contributions to GPT-Life! Please see our [Contributing Guidelines](C
 - Include error handling
 - Write clear commit messages
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- OpenAI for the GPT-OSS model
-- OpenRouter for API access
-- Next.js team for the excellent framework
-- ShadCN UI for the component library
-- The open-source community for inspiration and tools
-
-## Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](https://github.com/yourusername/gpt-life/issues) page
-2. Create a new issue with detailed information
-3. Include steps to reproduce any bugs
-4. Provide your environment details
-
----
 
 **Built with Next.js, TypeScript, and AI** | **Powered by OpenAI GPT-OSS-20B**
